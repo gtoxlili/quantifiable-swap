@@ -122,7 +122,7 @@ func (b *ByBitProvider) MarketOrder(base, quote string, side string, size string
 	reqPayload := ByBitOrderRequest{
 		Category:    "spot",
 		Symbol:      b.encodeInstId(base, quote),
-		Side:        side,
+		Side:        strings.Title(side),
 		OrderType:   "Market",
 		Qty:         size,
 		TimeInForce: "IOC",

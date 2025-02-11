@@ -122,7 +122,7 @@ func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) 
 	reqPayload := OkxOrderRequest{
 		InstId:  o.encodeInstId(base, quote),
 		TdMode:  "cash",
-		Side:    side,
+		Side:    strings.ToLower(side),
 		OrdType: "market",
 		Sz:      sz,
 		TgtCcy:  "quote_ccy",
