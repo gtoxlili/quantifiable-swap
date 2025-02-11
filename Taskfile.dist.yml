@@ -40,7 +40,7 @@ tasks:
         }
       - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}}"
       - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}:{{.REMOTE_PATH}}
-      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_PATH}}{{.BINARY_NAME}}"
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_PATH}}{{.BINARY_NAME}};{{.REMOTE_PM2_PATH}} save"
   darwin-amd64:
     cmds:
       - task: build

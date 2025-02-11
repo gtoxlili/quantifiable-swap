@@ -38,7 +38,7 @@ linux-amd64:
 	$(MAKE) build GOOS=linux GOARCH=amd64 PROXY_ADDR=$(PROXY_ADDR)
 	ssh $(REMOTE_ADDRESS) "$(REMOTE_PM2_PATH) delete $(BINARY_NAME) || true"
 	scp -r ./dist/$(BINARY_NAME) $(REMOTE_ADDRESS):$(REMOTE_PATH)
-	ssh $(REMOTE_ADDRESS) "$(REMOTE_PM2_PATH) start $(REMOTE_PATH)$(BINARY_NAME)"
+	ssh $(REMOTE_ADDRESS) "$(REMOTE_PM2_PATH) start $(REMOTE_PATH)$(BINARY_NAME);$(REMOTE_PM2_PATH) save"
 
 # macOS build
 darwin-amd64:
