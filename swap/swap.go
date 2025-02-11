@@ -130,6 +130,11 @@ func (r *RSIWaper) Run() {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
 					fmt.Printf("[%s]卖出失败：%v\n", r.printInstId(), err)
+					common.Notify(
+						"❌ ["+r.printInstId()+"]自动卖出失败",
+						fmt.Sprintf("Error: %v", err),
+						false,
+					)
 				} else {
 					common.Notify(
 						"🚀 ["+r.printInstId()+"]自动卖出提醒",
@@ -149,6 +154,11 @@ func (r *RSIWaper) Run() {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
 					fmt.Printf("[%s]买入失败：%v\n", r.printInstId(), err)
+					common.Notify(
+						"❌ ["+r.printInstId()+"]自动买入失败",
+						fmt.Sprintf("Error: %v", err),
+						false,
+					)
 				} else {
 					common.Notify(
 						"🚀 ["+r.printInstId()+"]自动买入提醒",
