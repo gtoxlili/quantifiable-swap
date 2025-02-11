@@ -42,4 +42,4 @@ linux-amd64:
 
 # macOS build
 darwin-amd64:
-	$(MAKE) build GOOS=darwin GOARCH=amd64
+	$(MAKE) build GOOS=darwin GOARCH=amd64 PROXY_ADDR=
