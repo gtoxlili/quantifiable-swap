@@ -6,6 +6,8 @@ vars:
   OKX_SECRET_KEY:
   OKX_PASSPHRASE:
   BARK_TOKEN:
+  BYBIT_API_KEY:
+  BYBIT_SECRET_KEY:
 
 tasks:
   clean:
@@ -24,6 +26,8 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.OkxPassphrase={{.OKX_PASSPHRASE}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ProxyAddr={{.PROXY_ADDR}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey={{.BYBIT_API_KEY}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitSecretKey={{.BYBIT_SECRET_KEY}}' \
         -w -s -buildid="
   linux-amd64:
     vars:

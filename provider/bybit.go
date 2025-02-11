@@ -108,7 +108,6 @@ func (b *ByBitProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	}, nil
 }
 
-// CreateOrderRequest 定义了创建市价单的 JSON 请求体。
 type ByBitOrderRequest struct {
 	Category    string `json:"category"`    // 例如："spot"、"linear"、"inverse"
 	Symbol      string `json:"symbol"`      // 例如："BTCUSDT"
@@ -161,7 +160,7 @@ func (b *ByBitProvider) MaxHistoryLimit() int {
 }
 
 func (b *ByBitProvider) Name() string {
-	return "Bybit"
+	return "ByBit"
 }
 
 func (b *ByBitProvider) encodeInstId(base, quote string) string {
