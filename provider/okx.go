@@ -107,7 +107,7 @@ func (o *OkxProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	}, nil
 }
 
-type OrderRequest struct {
+type OkxOrderRequest struct {
 	InstId  string `json:"instId"`           // 产品ID，如 "BTC-USDT"
 	TdMode  string `json:"tdMode"`           // 交易模式，现货下单固定为 "cash"
 	Side    string `json:"side"`             // 订单方向：buy 或 sell
@@ -119,7 +119,7 @@ type OrderRequest struct {
 func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) {
 
 	// 构造请求参数，市价单时 ordType 固定为 "market"
-	reqPayload := OrderRequest{
+	reqPayload := OkxOrderRequest{
 		InstId:  o.encodeInstId(base, quote),
 		TdMode:  "cash",
 		Side:    side,
