@@ -8,3 +8,4 @@
 /vendor/
 /*.mod
 /*.sum
+/Taskfile.yml
