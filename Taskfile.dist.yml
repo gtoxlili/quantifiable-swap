@@ -1,0 +1,54 @@
+version: '3'
+
+vars:
+  BINARY_NAME:
+  OKX_API_KEY:
+  OKX_SECRET_KEY:
+  OKX_PASSPHRASE:
+  PROXY_ADDR:
+  BARK_TOKEN:
+  REMOTE_ADDRESS:
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf dist
+      - mkdir -p dist
+  build:
+    label: build-{{.TASK}}
+    cmds:
+      - |
+        GOOS={{.GOOS}} GOARCH={{.GOARCH}} GOARM={{.GOARM}} GOMIPS={{.GOMIPS}} \
+        CGO_ENABLED=0 \
+        go build -trimpath -o ./dist/{{.BINARY_NAME}} \
+        -ldflags "-X 'quantifiable-swap/constants.OkxAPIKey={{.OKX_API_KEY}}' \
+        -X 'quantifiable-swap/constants.OkxSecretKey={{.OKX_SECRET_KEY}}' \
+        -X 'quantifiable-swap/constants.OkxPassphrase={{.OKX_PASSPHRASE}}' \
+        -X 'quantifiable-swap/constants.ProxyAddr={{.PROXY_ADDR}}' \
+        -X 'quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
+        -w -s -buildid="
+  linux-amd64:
+    cmds:
+      - task: build
+        vars: {
+          TASK: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: amd64
+        }
+      - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}
+  darwin-amd64:
+    cmds:
+      - task: build
+        vars: {
+          TASK: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: amd64
+        }
+  default:
+    cmds:
+      - task: clean
+      - task: linux-amd64
+  dev:
+    cmds:
+      - task: clean
+      - task: darwin-amd64

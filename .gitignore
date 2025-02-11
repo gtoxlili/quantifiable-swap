@@ -1,0 +1,10 @@
+/dist/
+/.idea/
+/.vscode/
+/*.exe
+/*.log
+/*.out
+/*.test
+/vendor/
+/*.mod
+/*.sum
