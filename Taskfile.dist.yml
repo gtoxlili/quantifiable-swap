@@ -5,9 +5,7 @@ vars:
   OKX_API_KEY:
   OKX_SECRET_KEY:
   OKX_PASSPHRASE:
-  PROXY_ADDR:
   BARK_TOKEN:
-  REMOTE_ADDRESS:
 
 tasks:
   clean:
@@ -28,21 +26,28 @@ tasks:
         -X 'quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
         -w -s -buildid="
   linux-amd64:
+    vars:
+      REMOTE_PM2_PATH:
+      REMOTE_ADDRESS:
+      REMOTE_PATH:
     cmds:
       - task: build
         vars: {
           TASK: "{{.TASK}}",
           GOOS: linux,
-          GOARCH: amd64
+          GOARCH: amd64,
+          PROXY_ADDR:
         }
-      - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}}"
+      - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}:{{.REMOTE_PATH}}
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_PATH}}{{.BINARY_NAME}}"
   darwin-amd64:
     cmds:
       - task: build
         vars: {
           TASK: "{{.TASK}}",
           GOOS: darwin,
-          GOARCH: amd64
+          GOARCH: amd64,
         }
   default:
     cmds:
@@ -52,3 +57,4 @@ tasks:
     cmds:
       - task: clean
       - task: darwin-amd64
+
