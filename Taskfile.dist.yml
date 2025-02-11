@@ -19,11 +19,11 @@ tasks:
         GOOS={{.GOOS}} GOARCH={{.GOARCH}} GOARM={{.GOARM}} GOMIPS={{.GOMIPS}} \
         CGO_ENABLED=0 \
         go build -trimpath -o ./dist/{{.BINARY_NAME}} \
-        -ldflags "-X 'quantifiable-swap/constants.OkxAPIKey={{.OKX_API_KEY}}' \
-        -X 'quantifiable-swap/constants.OkxSecretKey={{.OKX_SECRET_KEY}}' \
-        -X 'quantifiable-swap/constants.OkxPassphrase={{.OKX_PASSPHRASE}}' \
-        -X 'quantifiable-swap/constants.ProxyAddr={{.PROXY_ADDR}}' \
-        -X 'quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
+        -ldflags "-X 'github.com/gtoxlili/quantifiable-swap/constants.OkxAPIKey={{.OKX_API_KEY}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.OkxSecretKey={{.OKX_SECRET_KEY}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.OkxPassphrase={{.OKX_PASSPHRASE}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.ProxyAddr={{.PROXY_ADDR}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
         -w -s -buildid="
   linux-amd64:
     vars:

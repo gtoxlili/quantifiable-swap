@@ -3,8 +3,8 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/client"
 	"net/http"
-	"quantifiable-swap/client"
 	"strings"
 	"time"
 )

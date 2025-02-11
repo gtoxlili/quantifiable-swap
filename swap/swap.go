@@ -2,11 +2,11 @@ package swap
 
 import (
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/quantifiable"
+	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/exp/slices"
-	"quantifiable-swap/common"
-	"quantifiable-swap/provider"
-	"quantifiable-swap/quantifiable"
-	"quantifiable-swap/sequence"
 	"strings"
 	"time"
 )

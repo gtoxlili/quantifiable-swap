@@ -1,9 +1,9 @@
 package client
 
 import (
+	"github.com/gtoxlili/quantifiable-swap/constants"
 	"net/http"
 	"net/url"
-	"quantifiable-swap/constants"
 	"time"
 )
 

@@ -2,7 +2,7 @@ package sequence
 
 import (
 	"fmt"
-	"quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/provider"
 	"strconv"
 	"sync"
 	"time"

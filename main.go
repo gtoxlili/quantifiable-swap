@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/gtoxlili/quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/swap"
 	"os"
 	"os/signal"
-	"quantifiable-swap/provider"
-	"quantifiable-swap/swap"
 	"syscall"
 	"time"
 )

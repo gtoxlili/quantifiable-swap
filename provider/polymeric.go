@@ -2,7 +2,7 @@ package provider
 
 import (
 	"fmt"
-	"quantifiable-swap/common/lo"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"strconv"
 )
 

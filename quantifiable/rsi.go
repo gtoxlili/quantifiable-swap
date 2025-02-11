@@ -2,8 +2,8 @@ package quantifiable
 
 import (
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/exp/constraints"
-	"quantifiable-swap/sequence"
 )
 
 // avgGain / avgLoss
