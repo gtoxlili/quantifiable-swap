@@ -17,16 +17,16 @@ const (
 )
 
 // 最后一次 购买/卖出 的快照
-type lastTrade struct {
-	lastOrderTime time.Time
-	lastPrice     float64
-	lastRSI       float64
+type LastTrade struct {
+	OrderTime time.Time
+	Price     float64
+	RSI       float64
 }
 
 // RSIWaper manages RSI-based auto-trading logic
 type RSIWaper struct {
-	lastSellTrade *lastTrade
-	lastBuyTrade  *lastTrade
+	lastSellTrade *LastTrade
+	lastBuyTrade  *LastTrade
 
 	base  string
 	quote string
@@ -37,8 +37,8 @@ type RSIWaper struct {
 	autoTrade  bool
 
 	// 判断是否自动下单的函数
-	canSell func(rsiQueue []float64, curRSI float64) bool
-	canBuy  func(rsiQueue []float64, curRSI float64) bool
+	canSell func(rsiQueue []float64, curRSI float64, lastSellTrade *LastTrade, bar time.Duration) error
+	canBuy  func(rsiQueue []float64, curRSI float64, lastBuyTrade *LastTrade, bar time.Duration) error
 
 	stopChan chan struct{}
 
@@ -55,7 +55,7 @@ func NewRSIWaper(base, quote string, bar time.Duration, sellAmount, buyAmount st
 	return NewRSIWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(rsiQueue []float64, curRSI float64) bool, dataProvider provider.Provider) *RSIWaper {
+func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(rsiQueue []float64, curRSI float64, lastBuyTrade *LastTrade, bar time.Duration) error, dataProvider provider.Provider) *RSIWaper {
 	return &RSIWaper{
 		base:         base,
 		quote:        quote,
@@ -125,46 +125,10 @@ func (r *RSIWaper) Run() {
 				continue
 			}
 
-			// 判断是否满足卖出条件
-			if r.canSell(rsiQueue, curRSI) {
-				if time.Since(r.lastSellTrade.lastOrderTime) <= 4*r.bar && curRSI < 1.2*r.lastSellTrade.lastRSI {
-					// 避免短期一直在 70 附近震荡的情况
-					r.lastSellTrade.lastOrderTime = time.Now()
-					fmt.Printf("[%s]卖出太频繁 Time: %s\n", r.printInstId(), time.Now().Format("15:04:05"))
-					continue
-				}
-				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
-				if err != nil {
-					fmt.Printf("[%s]卖出失败：%v\n", r.printInstId(), err)
-					common.Notify(
-						"❌ ["+r.printInstId()+"]自动卖出失败",
-						fmt.Sprintf("Error: %v", err),
-						false,
-					)
-				} else {
-					common.Notify(
-						"🚀 ["+r.printInstId()+"]自动卖出提醒",
-						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
-						false,
-					)
-					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastSellTrade = &lastTrade{
-						lastOrderTime: time.Now(),
-						lastPrice:     candle.Value,
-						lastRSI:       curRSI,
-					}
-				}
-			} else if r.canBuy(rsiQueue, curRSI) {
-				// 比如上次买的时候是 30
-				// 如果这次 RSI 一直在 30 附近，就不买了
-				// 但如果 跌回 20 以下，再次买入
-				// 20 >= (2*30)/3
-				if time.Since(r.lastBuyTrade.lastOrderTime) <= 4*r.bar && 1.2*curRSI > r.lastBuyTrade.lastRSI {
-					// 避免短期一直在 30 附近震荡的情况
-					r.lastBuyTrade.lastOrderTime = time.Now()
-					fmt.Printf("[%s]买入太频繁\n", r.printInstId())
-					continue
-				}
+			if err := r.canBuy(rsiQueue, curRSI, r.lastBuyTrade, r.bar); err != nil {
+				fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				continue
+			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
 					fmt.Printf("[%s]买入失败：%v\n", r.printInstId(), err)
@@ -180,10 +144,37 @@ func (r *RSIWaper) Run() {
 						false,
 					)
 					fmt.Printf("[%s]买入成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastBuyTrade = &lastTrade{
-						lastOrderTime: time.Now(),
-						lastPrice:     candle.Value,
-						lastRSI:       curRSI,
+					r.lastBuyTrade = &LastTrade{
+						OrderTime: time.Now(),
+						Price:     candle.Value,
+						RSI:       curRSI,
+					}
+				}
+			}
+
+			if err := r.canSell(rsiQueue, curRSI, r.lastSellTrade, r.bar); err != nil {
+				fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				continue
+			} else {
+				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
+				if err != nil {
+					fmt.Printf("[%s]卖出失败：%v\n", r.printInstId(), err)
+					common.Notify(
+						"❌ ["+r.printInstId()+"]自动卖出失败",
+						fmt.Sprintf("Error: %v", err),
+						false,
+					)
+				} else {
+					common.Notify(
+						"🚀 ["+r.printInstId()+"]自动卖出提醒",
+						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
+						false,
+					)
+					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
+					r.lastSellTrade = &LastTrade{
+						OrderTime: time.Now(),
+						Price:     candle.Value,
+						RSI:       curRSI,
 					}
 				}
 			}
@@ -197,10 +188,10 @@ func (r *RSIWaper) printInstId() string {
 }
 
 // canSell determines if the RSI suggests a sell signal
-func defaultCanSell(rsiQueue []float64, curRSI float64) bool {
+func defaultCanSell(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
-		return false
+		return fmt.Errorf("采样数据不足")
 	}
 	// 下标顺序: [0,1,2,3,4] -> older -> newer
 	lastRSI := rsiQueue[4]
@@ -208,15 +199,22 @@ func defaultCanSell(rsiQueue []float64, curRSI float64) bool {
 	lastLastLastRSI := rsiQueue[2]
 
 	// 卖出判断逻辑: up -> up -> * -> down && RSI > 70
-	return lastRSI > lastLastRSI && lastLastRSI > lastLastLastRSI &&
-		curRSI < lastRSI && lastRSI > 70
+	if lastRSI > lastLastRSI && lastLastRSI > lastLastLastRSI &&
+		curRSI < lastRSI && lastRSI > 70 {
+		if time.Since(lst.OrderTime) <= 4*bar && curRSI < 1.2*lst.RSI {
+			// 避免短期一直在 70 附近震荡的情况
+			lst.OrderTime = time.Now()
+			return fmt.Errorf("卖出太频繁")
+		}
+		return nil
+	}
+	return fmt.Errorf("尚不满足卖出条件")
 }
 
-// canBuy determines if the RSI suggests a buy signal
-func defaultCanBuy(rsiQueue []float64, curRSI float64) bool {
+func defaultCanBuy(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
-		return false
+		return fmt.Errorf("采样数据不足")
 	}
 	// 下标顺序: [0,1,2,3,4] -> older -> newer
 	lastRSI := rsiQueue[4]
@@ -224,6 +222,14 @@ func defaultCanBuy(rsiQueue []float64, curRSI float64) bool {
 	lastLastLastRSI := rsiQueue[2]
 
 	// 买入判断逻辑: down -> down -> * -> up && RSI < 30
-	return lastRSI < lastLastRSI && lastLastRSI < lastLastLastRSI &&
-		curRSI > lastRSI && lastRSI < 30
+	if lastRSI < lastLastRSI && lastLastRSI < lastLastLastRSI &&
+		curRSI > lastRSI && lastRSI < 30 {
+		if time.Since(lst.OrderTime) <= 4*bar && 1.2*curRSI > lst.RSI {
+			// 避免短期一直在 30 附近震荡的情况
+			lst.OrderTime = time.Now()
+			return fmt.Errorf("买入太频繁")
+		}
+		return nil
+	}
+	return fmt.Errorf("尚不满足买入条件")
 }
