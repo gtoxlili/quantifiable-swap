@@ -3,7 +3,6 @@ package common
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/constants"
@@ -11,17 +10,15 @@ import (
 	"net/url"
 )
 
-func HmacSha256Sign(message, secrectKey string) (string, error) {
+func HmacSha256Sign(message, secrectKey string) ([]byte, error) {
 	// 创建 HMAC-SHA256 哈希
 	h := hmac.New(sha256.New, []byte(secrectKey))
 	_, err := h.Write([]byte(message))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate HMAC: %v", err)
+		return nil, fmt.Errorf("failed to generate HMAC: %v", err)
 	}
 
-	// 计算 HMAC 并进行 Base64 编码
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return signature, nil
+	return h.Sum(nil), nil
 }
 
 // Notify 发送 Bark 推送提醒

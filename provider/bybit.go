@@ -2,6 +2,7 @@ package provider
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
@@ -147,7 +148,7 @@ func (b *ByBitProvider) MarketOrder(base, quote string, side string, size string
 		return "", fmt.Errorf("json marshal error: %v", err)
 	}
 
-	respBody, err := b.fetchBybitAuthRequest("POST", "/v5/order/create", bodyBytes)
+	respBody, err := b.fetchByBitAuthRequest("POST", "/v5/order/create", bodyBytes)
 	if err != nil {
 		return "", fmt.Errorf("request error: %v", err)
 	}
@@ -180,7 +181,7 @@ func (b *ByBitProvider) encodeInstId(base, quote string) string {
 	return strings.ToUpper(base) + strings.ToUpper(quote)
 }
 
-func (b *ByBitProvider) fetchBybitAuthRequest(method, requestPath string, body []byte) (io.ReadCloser, error) {
+func (b *ByBitProvider) fetchByBitAuthRequest(method, requestPath string, body []byte) (io.ReadCloser, error) {
 	// 获取当前时间戳
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
@@ -201,7 +202,7 @@ func (b *ByBitProvider) fetchBybitAuthRequest(method, requestPath string, body [
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-BAPI-API-KEY", b.apiKey)
 	req.Header.Set("X-BAPI-TIMESTAMP", timestamp)
-	req.Header.Set("X-BAPI-SIGN", signature)
+	req.Header.Set("X-BAPI-SIGN", hex.EncodeToString(signature))
 
 	resp, err := client.C.Do(req)
 	if err != nil {

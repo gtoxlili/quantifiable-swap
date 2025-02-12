@@ -2,6 +2,7 @@ package provider
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
@@ -194,7 +195,7 @@ func (o *OkxProvider) fetchOkxAuthRequest(method, requestPath string, body []byt
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("OK-ACCESS-KEY", o.apiKey)
-	req.Header.Set("OK-ACCESS-SIGN", sign)
+	req.Header.Set("OK-ACCESS-SIGN", base64.StdEncoding.EncodeToString(sign))
 	req.Header.Set("OK-ACCESS-TIMESTAMP", timestamp)
 	req.Header.Set("OK-ACCESS-PASSPHRASE", o.passphrase)
 
