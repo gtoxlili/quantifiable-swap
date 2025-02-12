@@ -2,6 +2,7 @@ package limiter
 
 import (
 	"context"
+	"fmt"
 	"golang.org/x/time/rate"
 	"time"
 )
@@ -18,11 +19,16 @@ func NewTokenRateLimiter(rps int) RateLimiter {
 	return &tokenRateLimiter{limiter: rate.NewLimiter(rate.Every(time.Second/time.Duration(rps)), 1)}
 }
 
+func NewTokenRateLimiterWithBurst(rps, burst int) RateLimiter {
+	return &tokenRateLimiter{limiter: rate.NewLimiter(rate.Every(time.Second/time.Duration(rps)), burst)}
+}
+
 func (t tokenRateLimiter) Wait() error {
 	// 在这里可根据需要自定义 context，例如设置超时时间
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// 每次请求需要消耗 1 个令牌
 	// 如果没有可用令牌就会阻塞直到超时或拿到令牌为止
+	fmt.Println(time.Now().Format("15:04:05.000"), "RateLimiter.Wait")
 	return t.limiter.Wait(ctx)
 }

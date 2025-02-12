@@ -34,8 +34,10 @@ func NewByBit() Provider {
 		historyURL:     "https://api.bybit.com/v5/market/kline?category=spot&interval=1&symbol=%s&limit=%d",
 		apiKey:         constants.ByBitAPIKey,
 		apiSecret:      constants.ByBitAPISecret,
-		// 任意連續 5 秒的滾動窗口內不超過 600 個請求
-		limiter: limiter.NewTokenRateLimiter(300 / 5),
+		// Bybit:
+		// - Limit: 600 requests in a rolling 5-second window => 120 requests per second.
+		// - Example token limiter: rps = 120, burst = 120.
+		limiter: limiter.NewTokenRateLimiterWithBurst(120, 120),
 	}
 }
 

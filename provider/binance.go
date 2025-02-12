@@ -24,8 +24,13 @@ func NewBinance() Provider {
 	return &BinanceProvider{
 		latestPriceURL: "https://api.binance.com/api/v3/ticker/price?symbol=%s",
 		historyURL:     "https://api.binance.com/api/v3/klines?symbol=%s&interval=1m&limit=%d",
-		// 限速规则 600次/1m (IP)
-		limiter: limiter.NewTokenRateLimiter(8),
+		// Binance :
+		// - Kline data endpoint /api/v3/klines has weight = 2.
+		// - Request weight limit: 1200 per minute => ~20 weight/sec.
+		// With weight=2 for klines, it's ~10 klines requests/sec.
+		// - IP connection limit: 300 per 5 min => 60 per min => 1 connection/sec (approx).
+		// - Example token limiter: rps = 10, burst = 20 (conservative for klines requests).
+		limiter: limiter.NewTokenRateLimiterWithBurst(10, 20),
 	}
 }
 

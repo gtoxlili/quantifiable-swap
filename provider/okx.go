@@ -35,8 +35,10 @@ func NewOkx() Provider {
 		apiKey:         constants.OkxAPIKey,
 		secrectKey:     constants.OkxSecretKey,
 		passphrase:     constants.OkxPassphrase,
-		// 限速：20次/2s
-		limiter: limiter.NewTokenRateLimiter(4),
+		// OKX (欧易):
+		// - Limit: 20 requests every 2 seconds => 10 requests per second.
+		// - Example token limiter: rps = 10, burst = 10.
+		limiter: limiter.NewTokenRateLimiterWithBurst(4, 4),
 	}
 }
 

@@ -24,8 +24,10 @@ func NewBitGet() Provider {
 	return &BitGetProvider{
 		latestPriceURL: "https://api.bitget.com/api/v2/spot/market/tickers?symbol=%s",
 		historyURL:     "https://api.bitget.com/api/v2/spot/market/history-candles?symbol=%s&granularity=1min&limit=%d",
-		// 限速规则 20次/1s (IP)
-		limiter: limiter.NewTokenRateLimiter(15),
+		// Bitget:
+		// - Limit: 20 requests per second (IP).
+		// - Example token limiter: rps = 20, burst = 20.
+		limiter: limiter.NewTokenRateLimiterWithBurst(20, 20),
 	}
 }
 
