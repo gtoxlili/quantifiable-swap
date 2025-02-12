@@ -12,6 +12,9 @@ import (
 type BitGetProvider struct {
 	latestPriceURL string
 	historyURL     string
+
+	// 下单方法
+	orderFunc func(base, quote, side, size string) (string, error)
 }
 
 func NewBitGet() Provider {
@@ -19,6 +22,12 @@ func NewBitGet() Provider {
 		latestPriceURL: "https://api.bitget.com/api/v2/spot/market/tickers?symbol=%s",
 		historyURL:     "https://api.bitget.com/api/v2/spot/market/history-candles?symbol=%s&granularity=1min&limit=%d",
 	}
+}
+
+// InjectOrderFunc 注入下单方法
+func (b *BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+	b.orderFunc = orderFunc
+	return b
 }
 
 func (b *BitGetProvider) Name() string {
@@ -101,8 +110,10 @@ func (b *BitGetProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 }
 
 func (b *BitGetProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	if b.orderFunc == nil {
+		panic("implement me")
+	}
+	return b.orderFunc(base, quote, side, size)
 }
 
 func (b *BitGetProvider) encodeInstId(base, quote string) string {

@@ -19,6 +19,9 @@ type ByBitProvider struct {
 	historyURL     string
 	apiKey         string
 	apiSecret      string
+
+	// 下单方法
+	orderFunc func(base, quote, side, size string) (string, error)
 }
 
 func NewByBit() Provider {
@@ -28,6 +31,12 @@ func NewByBit() Provider {
 		apiKey:         constants.ByBitAPIKey,
 		apiSecret:      constants.ByBitAPISecret,
 	}
+}
+
+// InjectOrderFunc 注入下单方法
+func (b *ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+	b.orderFunc = orderFunc
+	return b
 }
 
 func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
@@ -119,6 +128,10 @@ type ByBitOrderRequest struct {
 }
 
 func (b *ByBitProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
+	if b.orderFunc != nil {
+		return b.orderFunc(base, quote, side, size)
+	}
+
 	reqPayload := ByBitOrderRequest{
 		Category:    "spot",
 		Symbol:      b.encodeInstId(base, quote),

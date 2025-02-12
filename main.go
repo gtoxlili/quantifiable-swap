@@ -10,31 +10,22 @@ import (
 )
 
 func main() {
-
 	okxProvider := provider.NewOkx()
-	bitGetProvider := provider.NewBitGet()
-	bnProvider := provider.NewBinance()
-	bybitProvider := provider.NewByBit()
+	//bitGetProvider := provider.NewBitGet()
+	bnProvider := provider.NewBinance().InjectOrderFunc(okxProvider.MarketOrder)
+	//bybitProvider := provider.NewByBit()
 
-	ethWaper := swap.NewRSIWaper("eth", "usdt", 15*time.Minute, "100", "400", okxProvider)
-	btcWaper := swap.NewRSIWaper("btc", "usdt", 15*time.Minute, "50", "200", okxProvider)
-	aeroWaper := swap.NewRSIWaper("aero", "usdt", 15*time.Minute, "50", "200", bybitProvider)
-	ondoNotify := swap.NewRSINotify("ondo", "usdt", 1*time.Hour, bitGetProvider)
-	ethNotify := swap.NewRSINotify("eth", "usdt", 15*time.Minute, bnProvider)
+	eth15mWaper := swap.NewRSIWaper("eth", "usdt", 15*time.Minute, "50", "100", okxProvider)
+	eth1hWaper := swap.NewRSIWaper("eth", "usdt", 1*time.Hour, "50", "200", okxProvider)
+	eth4hWaper := swap.NewRSIWaper("eth", "usdt", 4*time.Hour, "100", "400", bnProvider)
+	btc15mNotify := swap.NewRSINotify("btc", "usdt", 15*time.Minute, bnProvider)
 
-	go ethWaper.Run()
-	go ondoNotify.Run()
-	go btcWaper.Run()
-	go aeroWaper.Run()
-	go ethNotify.Run()
+	go eth15mWaper.Run()
+	go eth1hWaper.Run()
+	go eth4hWaper.Run()
+	go btc15mNotify.Run()
 
 	signChan := make(chan os.Signal, 1)
 	signal.Notify(signChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-signChan
-
-	ethWaper.Stop()
-	btcWaper.Stop()
-	ondoNotify.Stop()
-	aeroWaper.Stop()
-	ethNotify.Stop()
 }

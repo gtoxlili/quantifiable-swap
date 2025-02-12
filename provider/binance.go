@@ -13,6 +13,9 @@ import (
 type BinanceProvider struct {
 	latestPriceURL string
 	historyURL     string
+
+	// 下单方法
+	orderFunc func(base, quote, side, size string) (string, error)
 }
 
 func NewBinance() Provider {
@@ -20,6 +23,12 @@ func NewBinance() Provider {
 		latestPriceURL: "https://api.binance.com/api/v3/ticker/price?symbol=%s",
 		historyURL:     "https://api.binance.com/api/v3/klines?symbol=%s&interval=1m&limit=%d",
 	}
+}
+
+// InjectOrderFunc 注入下单方法
+func (b *BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+	b.orderFunc = orderFunc
+	return b
 }
 
 func (b *BinanceProvider) Name() string {
@@ -93,8 +102,10 @@ func (b *BinanceProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 }
 
 func (b *BinanceProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	if b.orderFunc == nil {
+		panic("implement me")
+	}
+	return b.orderFunc(base, quote, side, size)
 }
 
 func (b *BinanceProvider) encodeInstId(base, quote string) string {

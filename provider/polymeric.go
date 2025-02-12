@@ -9,6 +9,9 @@ import (
 type PolymericProvider struct {
 	members      []Provider
 	strategyFunc func([]*TpRes) *TpRes
+
+	// 下单方法
+	orderFunc func(base, quote, side, size string) (string, error)
 }
 
 func NewPolymericProvider(members ...Provider) Provider {
@@ -23,6 +26,11 @@ func NewPolymericProviderWithStrategy(strategy func([]*TpRes) *TpRes, members ..
 		members:      members,
 		strategyFunc: strategy,
 	}
+}
+
+func (p *PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+	p.orderFunc = orderFunc
+	return p
 }
 
 func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
@@ -89,8 +97,10 @@ func (p *PolymericProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 }
 
 func (p *PolymericProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	if p.orderFunc == nil {
+		panic("implement me")
+	}
+	return p.orderFunc(base, quote, side, size)
 }
 
 func (p *PolymericProvider) MaxHistoryLimit() int {

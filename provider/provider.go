@@ -16,4 +16,5 @@ type Provider interface {
 	Name() string
 	// EncodeInstId 通用性设计：编码不同格式的 instId
 	encodeInstId(base, quote string) string
+	InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider
 }

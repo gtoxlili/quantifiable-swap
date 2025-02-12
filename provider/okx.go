@@ -19,6 +19,9 @@ type OkxProvider struct {
 	apiKey         string
 	secrectKey     string
 	passphrase     string
+
+	// 下单方法
+	orderFunc func(base, quote, side, size string) (string, error)
 }
 
 func NewOkx() Provider {
@@ -29,6 +32,12 @@ func NewOkx() Provider {
 		secrectKey:     constants.OkxSecretKey,
 		passphrase:     constants.OkxPassphrase,
 	}
+}
+
+// InjectOrderFunc 注入下单方法
+func (o *OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+	o.orderFunc = orderFunc
+	return o
 }
 
 func (o *OkxProvider) MaxHistoryLimit() int {
@@ -117,6 +126,10 @@ type OkxOrderRequest struct {
 }
 
 func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) {
+
+	if o.orderFunc != nil {
+		return o.orderFunc(base, quote, side, sz)
+	}
 
 	// 构造请求参数，市价单时 ordType 固定为 "market"
 	reqPayload := OkxOrderRequest{
