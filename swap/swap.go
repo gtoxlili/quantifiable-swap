@@ -16,12 +16,17 @@ const (
 	maxPriceCount = 300
 )
 
+// 最后一次 购买/卖出 的快照
+type lastTrade struct {
+	lastOrderTime time.Time
+	lastPrice     float64
+	lastRSI       float64
+}
+
 // RSIWaper manages RSI-based auto-trading logic
 type RSIWaper struct {
-	lastSellOrderTime time.Time
-	lastBuyOrderTime  time.Time
-	lastBuyPrice      float64
-	lastSellPrice     float64
+	lastSellTrade *lastTrade
+	lastBuyTrade  *lastTrade
 
 	base  string
 	quote string
@@ -101,7 +106,7 @@ func (r *RSIWaper) Run() {
 			curRSI := rsiHook.CurrentRSI()
 
 			// 当前价格，当前 RSI
-			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n", r.printInstId(), r.dataProvider.Name(), fmt.Sprintf("%dm", int(r.bar.Minutes())), candle.Time, candle.Value, curRSI)
+			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n", r.printInstId(), r.dataProvider.Name(), fmt.Sprintf("%dm", int(r.bar.Minutes())), candle.Time.Format("15:04:05"), candle.Value, curRSI)
 
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
@@ -122,9 +127,10 @@ func (r *RSIWaper) Run() {
 
 			// 判断是否满足卖出条件
 			if r.canSell(rsiQueue, curRSI) {
-				// 限制卖出过于频繁
-				if time.Since(r.lastSellOrderTime) < 4*r.bar && candle.Value < r.lastSellPrice*1.05 {
-					fmt.Printf("[%s]卖出太频繁\n", r.printInstId())
+				if time.Since(r.lastSellTrade.lastOrderTime) <= 4*r.bar && curRSI < 1.2*r.lastSellTrade.lastRSI {
+					// 避免短期一直在 70 附近震荡的情况
+					r.lastSellTrade.lastOrderTime = time.Now()
+					fmt.Printf("[%s]卖出太频繁 Time: %s\n", r.printInstId(), time.Now().Format("15:04:05"))
 					continue
 				}
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
@@ -142,12 +148,20 @@ func (r *RSIWaper) Run() {
 						false,
 					)
 					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastSellOrderTime = time.Now()
-					r.lastSellPrice = candle.Value
+					r.lastSellTrade = &lastTrade{
+						lastOrderTime: time.Now(),
+						lastPrice:     candle.Value,
+						lastRSI:       curRSI,
+					}
 				}
 			} else if r.canBuy(rsiQueue, curRSI) {
-				// 限制买入过于频繁
-				if time.Since(r.lastBuyOrderTime) < 4*r.bar && candle.Value > r.lastBuyPrice*0.95 {
+				// 比如上次买的时候是 30
+				// 如果这次 RSI 一直在 30 附近，就不买了
+				// 但如果 跌回 20 以下，再次买入
+				// 20 >= (2*30)/3
+				if time.Since(r.lastBuyTrade.lastOrderTime) <= 4*r.bar && 1.2*curRSI > r.lastBuyTrade.lastRSI {
+					// 避免短期一直在 30 附近震荡的情况
+					r.lastBuyTrade.lastOrderTime = time.Now()
 					fmt.Printf("[%s]买入太频繁\n", r.printInstId())
 					continue
 				}
@@ -166,8 +180,11 @@ func (r *RSIWaper) Run() {
 						false,
 					)
 					fmt.Printf("[%s]买入成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastBuyOrderTime = time.Now()
-					r.lastBuyPrice = candle.Value
+					r.lastBuyTrade = &lastTrade{
+						lastOrderTime: time.Now(),
+						lastPrice:     candle.Value,
+						lastRSI:       curRSI,
+					}
 				}
 			}
 		}
