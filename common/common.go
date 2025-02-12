@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"math"
 	"net/http"
 	"net/url"
 )
@@ -46,4 +47,15 @@ func Notify(title, message string, isCritical bool) error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+// ExtraPointsForInitialDecay 计算给定周期（period）下，使初始影响衰减至 0.1% 以下
+// 所需的额外采样点数量
+func ExtraPointsForInitialDecay(period int) int {
+	// 目标衰减阈值（0.1%）
+	threshold := 0.001
+	base := float64(period-1) / float64(period)
+	// 解方程 (base)^k <= threshold => k >= log(threshold) / log(base)
+	k := math.Log(threshold) / math.Log(base)
+	return int(math.Ceil(k)) + period
 }

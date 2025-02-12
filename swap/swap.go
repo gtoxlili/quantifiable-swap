@@ -11,12 +11,7 @@ import (
 	"time"
 )
 
-const (
-	// 价格序列的最大长度，超过这个长度则删除最旧的数据
-	maxPriceCount = 300
-)
-
-// 最后一次 购买/卖出 的快照
+// LastTrade 最后一次 购买/卖出 的快照
 type LastTrade struct {
 	OrderTime time.Time
 	Price     float64
@@ -74,17 +69,22 @@ func (r *RSIWaper) Stop() {
 	close(r.stopChan)
 }
 
-// Run starts the auto-trading routine based on RSI signals
 func (r *RSIWaper) Run() {
+	r.RunWithCustomPeriod(14)
+}
+
+func (r *RSIWaper) RunWithCustomPeriod(
+	period int,
+) {
 	// 创建一个价格序列，保存最多 maxPriceCount 个数据
-	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, maxPriceCount, r.dataProvider)
+	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
 		fmt.Printf("创建价格序列失败：%v\n", err)
 		return
 	}
 
 	// 创建一个 RSI 包装器，计算周期为 14
-	rsiHook, err := quantifiable.NewRSIHOOK(14, priceSeq)
+	rsiHook, err := quantifiable.NewRSIHOOK(period, priceSeq)
 	if err != nil {
 		fmt.Printf("创建 RSI 包装器失败：%v\n", err)
 		return

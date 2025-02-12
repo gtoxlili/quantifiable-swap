@@ -16,15 +16,15 @@ func main() {
 	bybitProvider := provider.NewByBit().InjectOrderFunc(okxProvider.MarketOrder)
 
 	eth15mWaper := swap.NewRSIWaper("eth", "usdt", 15*time.Minute, "50", "100", okxProvider)
-	eth1hWaper := swap.NewRSIWaper("eth", "usdt", 1*time.Hour, "50", "200", bybitProvider)
+	eth1hWaper := swap.NewRSIWaper("eth", "usdt", 1*time.Hour, "50", "200", bnProvider)
 	eth4hWaper := swap.NewRSIWaper("eth", "usdt", 4*time.Hour, "100", "400", bnProvider)
 	btc15mNotify := swap.NewRSINotify("btc", "usdt", 15*time.Minute, bnProvider)
 	aero1hNotify := swap.NewRSINotify("aero", "usdt", 1*time.Hour, bybitProvider)
 
-	go eth15mWaper.Run()
+	go eth15mWaper.RunWithCustomPeriod(21)
 	go eth1hWaper.Run()
 	go eth4hWaper.Run()
-	go btc15mNotify.Run()
+	go btc15mNotify.RunWithCustomPeriod(21)
 	go aero1hNotify.Run()
 
 	signChan := make(chan os.Signal, 1)
