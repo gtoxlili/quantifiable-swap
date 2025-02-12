@@ -67,8 +67,6 @@ func (ps *PriceSequence) initHistory() error {
 			break
 		}
 		aft = candles[len(candles)-1].Timestamp
-		// 限速：10次/2s
-		time.Sleep(200 * time.Millisecond)
 	}
 	// 逆序追加
 	for i := len(tmpCandles) - 1; i >= 0; i-- {

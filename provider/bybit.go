@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"io"
 	"net/http"
@@ -21,6 +22,8 @@ type ByBitProvider struct {
 	apiKey         string
 	apiSecret      string
 
+	limiter limiter.RateLimiter
+
 	// 下单方法
 	orderFunc func(base, quote, side, size string) (string, error)
 }
@@ -31,6 +34,8 @@ func NewByBit() Provider {
 		historyURL:     "https://api.bybit.com/v5/market/kline?category=spot&interval=1&symbol=%s&limit=%d",
 		apiKey:         constants.ByBitAPIKey,
 		apiSecret:      constants.ByBitAPISecret,
+		// 任意連續 5 秒的滾動窗口內不超過 600 個請求
+		limiter: limiter.NewTokenRateLimiter(300 / 5),
 	}
 }
 
@@ -41,6 +46,10 @@ func (b *ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side, size s
 }
 
 func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
 	if afterTime != "" {
 		// 减一分钟
@@ -84,6 +93,10 @@ func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, li
 }
 
 func (b *ByBitProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
 	if err != nil {
 		return nil, err
@@ -182,6 +195,9 @@ func (b *ByBitProvider) encodeInstId(base, quote string) string {
 }
 
 func (b *ByBitProvider) fetchByBitAuthRequest(method, requestPath string, body []byte) (io.ReadCloser, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
 	// 获取当前时间戳
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 

@@ -126,7 +126,7 @@ func (r *RSIWaper) Run() {
 			}
 
 			if err := r.canBuy(rsiQueue, curRSI, r.lastBuyTrade, r.bar); err != nil {
-				fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				// fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
@@ -153,7 +153,7 @@ func (r *RSIWaper) Run() {
 			}
 
 			if err := r.canSell(rsiQueue, curRSI, r.lastSellTrade, r.bar); err != nil {
-				fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				// fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)

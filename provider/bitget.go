@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
+	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +14,8 @@ type BitGetProvider struct {
 	latestPriceURL string
 	historyURL     string
 
+	limiter limiter.RateLimiter
+
 	// 下单方法
 	orderFunc func(base, quote, side, size string) (string, error)
 }
@@ -21,6 +24,8 @@ func NewBitGet() Provider {
 	return &BitGetProvider{
 		latestPriceURL: "https://api.bitget.com/api/v2/spot/market/tickers?symbol=%s",
 		historyURL:     "https://api.bitget.com/api/v2/spot/market/history-candles?symbol=%s&granularity=1min&limit=%d",
+		// 限速规则 20次/1s (IP)
+		limiter: limiter.NewTokenRateLimiter(15),
 	}
 }
 
@@ -39,6 +44,10 @@ func (b *BitGetProvider) MaxHistoryLimit() int {
 }
 
 func (b *BitGetProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
 	if afterTime != "" {
 		url = url + "&endTime=" + afterTime
@@ -80,6 +89,10 @@ func (b *BitGetProvider) GetHistoryTpRes(base, quote string, afterTime string, l
 }
 
 func (b *BitGetProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
 	if err != nil {
 		return nil, err

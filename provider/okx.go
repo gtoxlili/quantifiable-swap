@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"io"
 	"net/http"
@@ -21,6 +22,8 @@ type OkxProvider struct {
 	secrectKey     string
 	passphrase     string
 
+	limiter limiter.RateLimiter
+
 	// 下单方法
 	orderFunc func(base, quote, side, size string) (string, error)
 }
@@ -32,6 +35,8 @@ func NewOkx() Provider {
 		apiKey:         constants.OkxAPIKey,
 		secrectKey:     constants.OkxSecretKey,
 		passphrase:     constants.OkxPassphrase,
+		// 限速：20次/2s
+		limiter: limiter.NewTokenRateLimiter(4),
 	}
 }
 
@@ -50,6 +55,10 @@ func (o *OkxProvider) Name() string {
 }
 
 func (o *OkxProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+	if err := o.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)
+	}
+
 	url := fmt.Sprintf(o.historyURL, o.encodeInstId(base, quote), limit)
 	if afterTime != "" {
 		url = url + "&after=" + afterTime
@@ -88,6 +97,10 @@ func (o *OkxProvider) GetHistoryTpRes(base, quote string, afterTime string, limi
 }
 
 func (o *OkxProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+	if err := o.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf(o.latestPriceURL, o.encodeInstId(base, quote)), nil)
 	if err != nil {
 		return nil, err
@@ -180,6 +193,9 @@ func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) 
 }
 
 func (o *OkxProvider) fetchOkxAuthRequest(method, requestPath string, body []byte) (io.ReadCloser, error) {
+	if err := o.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)
+	}
 	// 获取当前时间
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	// 生成 OK-ACCESS-SIGN

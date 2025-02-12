@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
+	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ type BinanceProvider struct {
 	latestPriceURL string
 	historyURL     string
 
+	limiter limiter.RateLimiter
 	// 下单方法
 	orderFunc func(base, quote, side, size string) (string, error)
 }
@@ -22,6 +24,8 @@ func NewBinance() Provider {
 	return &BinanceProvider{
 		latestPriceURL: "https://api.binance.com/api/v3/ticker/price?symbol=%s",
 		historyURL:     "https://api.binance.com/api/v3/klines?symbol=%s&interval=1m&limit=%d",
+		// 限速规则 600次/1m (IP)
+		limiter: limiter.NewTokenRateLimiter(8),
 	}
 }
 
@@ -40,6 +44,10 @@ func (b *BinanceProvider) MaxHistoryLimit() int {
 }
 
 func (b *BinanceProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
 
 	if afterTime != "" {
@@ -79,6 +87,10 @@ func (b *BinanceProvider) GetHistoryTpRes(base, quote string, afterTime string, 
 }
 
 func (b *BinanceProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+	if err := b.limiter.Wait(); err != nil {
+		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
 	if err != nil {
 		return nil, err
