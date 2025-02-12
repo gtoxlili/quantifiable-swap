@@ -2,7 +2,6 @@ package limiter
 
 import (
 	"context"
-	"fmt"
 	"golang.org/x/time/rate"
 	"time"
 )
@@ -29,6 +28,5 @@ func (t tokenRateLimiter) Wait() error {
 	defer cancel()
 	// 每次请求需要消耗 1 个令牌
 	// 如果没有可用令牌就会阻塞直到超时或拿到令牌为止
-	fmt.Println(time.Now().Format("15:04:05.000"), "RateLimiter.Wait")
 	return t.limiter.Wait(ctx)
 }

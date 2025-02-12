@@ -38,7 +38,7 @@ func NewOkx() Provider {
 		// OKX (欧易):
 		// - Limit: 20 requests every 2 seconds => 10 requests per second.
 		// - Example token limiter: rps = 10, burst = 10.
-		limiter: limiter.NewTokenRateLimiterWithBurst(4, 4),
+		limiter: limiter.NewTokenRateLimiter(4),
 	}
 }
 
