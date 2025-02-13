@@ -1,12 +1,14 @@
 package swap
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/provider"
 	"github.com/gtoxlili/quantifiable-swap/quantifiable"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/exp/slices"
+	"golang.org/x/tools/container/intsets"
 	"strings"
 	"time"
 )
@@ -62,6 +64,18 @@ func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmo
 		canBuy:       canBuy,
 		stopChan:     make(chan struct{}),
 		dataProvider: dataProvider,
+
+		// 初始化快照
+		lastSellTrade: &LastTrade{
+			OrderTime: time.Unix(0, 0),
+			RSI:       float64(intsets.MaxInt),
+			Price:     float64(intsets.MaxInt),
+		},
+		lastBuyTrade: &LastTrade{
+			OrderTime: time.Unix(0, 0),
+			RSI:       float64(intsets.MinInt),
+			Price:     float64(intsets.MinInt),
+		},
 	}
 }
 
@@ -126,7 +140,9 @@ func (r *RSIWaper) RunWithCustomPeriod(
 			}
 
 			if err := r.canBuy(rsiQueue, curRSI, r.lastBuyTrade, r.bar); err != nil {
-				// fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				if errors.Is(err, ErrBuyTooFrequent) {
+					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				}
 				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
@@ -144,16 +160,16 @@ func (r *RSIWaper) RunWithCustomPeriod(
 						false,
 					)
 					fmt.Printf("[%s]买入成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastBuyTrade = &LastTrade{
-						OrderTime: time.Now(),
-						Price:     candle.Value,
-						RSI:       curRSI,
-					}
+					r.lastBuyTrade.OrderTime = time.Now()
+					r.lastBuyTrade.Price = candle.Value
+					r.lastBuyTrade.RSI = curRSI
 				}
 			}
 
 			if err := r.canSell(rsiQueue, curRSI, r.lastSellTrade, r.bar); err != nil {
-				// fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				if errors.Is(err, ErrSellTooFrequent) {
+					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
+				}
 				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
@@ -171,11 +187,9 @@ func (r *RSIWaper) RunWithCustomPeriod(
 						false,
 					)
 					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
-					r.lastSellTrade = &LastTrade{
-						OrderTime: time.Now(),
-						Price:     candle.Value,
-						RSI:       curRSI,
-					}
+					r.lastSellTrade.OrderTime = time.Now()
+					r.lastSellTrade.Price = candle.Value
+					r.lastSellTrade.RSI = curRSI
 				}
 			}
 		}
@@ -191,7 +205,7 @@ func (r *RSIWaper) printInstId() string {
 func defaultCanSell(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
-		return fmt.Errorf("采样数据不足")
+		return ErrInsufficientSampleData
 	}
 	// 下标顺序: [0,1,2,3,4] -> older -> newer
 	lastRSI := rsiQueue[4]
@@ -204,17 +218,17 @@ func defaultCanSell(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time
 		if time.Since(lst.OrderTime) <= 4*bar && curRSI < 1.2*lst.RSI {
 			// 避免短期一直在 70 附近震荡的情况
 			lst.OrderTime = time.Now()
-			return fmt.Errorf("卖出太频繁")
+			return ErrSellTooFrequent
 		}
 		return nil
 	}
-	return fmt.Errorf("尚不满足卖出条件")
+	return ErrNotMeetSellCondition
 }
 
 func defaultCanBuy(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
-		return fmt.Errorf("采样数据不足")
+		return ErrInsufficientSampleData
 	}
 	// 下标顺序: [0,1,2,3,4] -> older -> newer
 	lastRSI := rsiQueue[4]
@@ -227,9 +241,9 @@ func defaultCanBuy(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.
 		if time.Since(lst.OrderTime) <= 4*bar && 1.2*curRSI > lst.RSI {
 			// 避免短期一直在 30 附近震荡的情况
 			lst.OrderTime = time.Now()
-			return fmt.Errorf("买入太频繁")
+			return ErrBuyTooFrequent
 		}
 		return nil
 	}
-	return fmt.Errorf("尚不满足买入条件")
+	return ErrNotMeetBuyCondition
 }

@@ -11,7 +11,7 @@ import (
 
 func main() {
 	okxProvider := provider.NewOkx()
-	//bitGetProvider := provider.NewBitGet()
+	// bitGetProvider := provider.NewBitGet()
 	bnProvider := provider.NewBinance().InjectOrderFunc(okxProvider.MarketOrder)
 	bybitProvider := provider.NewByBit().InjectOrderFunc(okxProvider.MarketOrder)
 
