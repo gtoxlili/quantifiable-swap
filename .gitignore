@@ -6,7 +6,6 @@
 /*.out
 /*.test
 /vendor/
-/*.mod
 /*.sum
 /Taskfile.yml
 /Makefile
