@@ -86,23 +86,30 @@ func (r *RSIWaper) Run() {
 	r.RunWithCustomPeriod(14)
 }
 
-func (r *RSIWaper) RunWithCustomPeriod(
-	period int,
-) {
-	// 创建一个价格序列，保存最多 maxPriceCount 个数据
+func (r *RSIWaper) RunWithCustomPeriod(period int) {
+	_, rsiHook, err := r.prepareRSIHook(period)
+	if err != nil {
+		fmt.Printf("[%s] %v\n", r.printInstId(), err)
+		return
+	}
+	r.runRSILoop(rsiHook)
+}
+
+func (r *RSIWaper) prepareRSIHook(period int) (sequence.Sequence[float64], quantifiable.RSIIndicator[float64], error) {
 	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
-		fmt.Printf("创建价格序列失败：%v\n", err)
-		return
+		return nil, nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
 
-	// 创建一个 RSI 包装器，计算周期为 14
-	rsiHook, err := quantifiable.NewRSIHOOK(period, priceSeq)
+	rsiHook, err := quantifiable.NewRSI(period, priceSeq)
 	if err != nil {
-		fmt.Printf("创建 RSI 包装器失败：%v\n", err)
-		return
+		return nil, nil, fmt.Errorf("创建 RSI 包装器失败：%w", err)
 	}
 
+	return priceSeq, rsiHook, nil
+}
+
+func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
 	for {
 		select {
 		case <-r.stopChan:
@@ -115,7 +122,7 @@ func (r *RSIWaper) RunWithCustomPeriod(
 				continue
 			}
 
-			rsiQueue := rsiHook.LastRSIs()
+			rsiQueue := rsiHook.PreviousRSIs()
 			curRSI := rsiHook.CurrentRSI()
 
 			// 当前价格，当前 RSI
@@ -148,7 +155,6 @@ func (r *RSIWaper) RunWithCustomPeriod(
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
-				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
@@ -181,7 +187,6 @@ func (r *RSIWaper) RunWithCustomPeriod(
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
-				continue
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
