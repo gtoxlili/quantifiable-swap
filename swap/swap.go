@@ -34,8 +34,8 @@ type RSIWaper struct {
 	autoTrade  bool
 
 	// 判断是否自动下单的函数
-	canSell func(rsiQueue []float64, curRSI float64, lastSellTrade *LastTrade, bar time.Duration) error
-	canBuy  func(rsiQueue []float64, curRSI float64, lastBuyTrade *LastTrade, bar time.Duration) error
+	canSell func(tc TradeCondition) error
+	canBuy  func(tc TradeCondition) error
 
 	stopChan chan struct{}
 
@@ -52,7 +52,7 @@ func NewRSIWaper(base, quote string, bar time.Duration, sellAmount, buyAmount st
 	return NewRSIWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(rsiQueue []float64, curRSI float64, lastBuyTrade *LastTrade, bar time.Duration) error, dataProvider provider.Provider) *RSIWaper {
+func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) *RSIWaper {
 	return &RSIWaper{
 		base:         base,
 		quote:        quote,
@@ -139,7 +139,13 @@ func (r *RSIWaper) RunWithCustomPeriod(
 				continue
 			}
 
-			if err := r.canBuy(rsiQueue, curRSI, r.lastBuyTrade, r.bar); err != nil {
+			if err := r.canBuy(TradeCondition{
+				rsiQueue: rsiQueue,
+				curRSI:   curRSI,
+				lst:      r.lastBuyTrade,
+				bar:      r.bar,
+				price:    candle.Value,
+			}); err != nil {
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				}
@@ -166,7 +172,13 @@ func (r *RSIWaper) RunWithCustomPeriod(
 				}
 			}
 
-			if err := r.canSell(rsiQueue, curRSI, r.lastSellTrade, r.bar); err != nil {
+			if err := r.canSell(TradeCondition{
+				rsiQueue: rsiQueue,
+				curRSI:   curRSI,
+				lst:      r.lastSellTrade,
+				bar:      r.bar,
+				price:    candle.Value,
+			}); err != nil {
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				}
@@ -201,8 +213,21 @@ func (r *RSIWaper) printInstId() string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(r.base), strings.ToUpper(r.quote))
 }
 
+type TradeCondition struct {
+	rsiQueue []float64     // 过去 5 个 RSI
+	curRSI   float64       // 当前 RSI
+	lst      *LastTrade    // 上次交易快照（RSI, Price, OrderTime）
+	bar      time.Duration // K 线周期
+	price    float64       // 当前价格
+}
+
 // canSell determines if the RSI suggests a sell signal
-func defaultCanSell(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
+func defaultCanSell(tc TradeCondition) error {
+	rsiQueue := tc.rsiQueue
+	curRSI := tc.curRSI
+	lst := tc.lst
+	bar := tc.bar
+
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
 		return ErrInsufficientSampleData
@@ -225,7 +250,12 @@ func defaultCanSell(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time
 	return ErrNotMeetSellCondition
 }
 
-func defaultCanBuy(rsiQueue []float64, curRSI float64, lst *LastTrade, bar time.Duration) error {
+func defaultCanBuy(tc TradeCondition) error {
+	rsiQueue := tc.rsiQueue
+	curRSI := tc.curRSI
+	lst := tc.lst
+	bar := tc.bar
+
 	// 如果包含 -1，说明数据不足，无法判断
 	if slices.Contains(rsiQueue, -1) {
 		return ErrInsufficientSampleData
