@@ -23,17 +23,14 @@ func HmacSha256Sign(message, secrectKey string) ([]byte, error) {
 }
 
 // Notify 发送 Bark 推送提醒
-func Notify(title, message string, isCritical bool) error {
+func Notify(title, message string, groupName string) error {
 	baseURL := fmt.Sprintf(
-		"https://api.day.app/%s/%s/%s",
+		"https://api.day.app/%s/%s/%s?group=%s",
 		constants.BarkToken,
 		url.QueryEscape(title),
 		url.QueryEscape(message),
+		url.QueryEscape(groupName),
 	)
-
-	if isCritical {
-		baseURL += "?level=critical&volume=5"
-	}
 
 	req, err := http.NewRequest(http.MethodGet, baseURL, nil)
 	if err != nil {

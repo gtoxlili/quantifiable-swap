@@ -131,12 +131,12 @@ func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
 				common.Notify(
-					"⚠️ ["+r.printInstId()+"]RSI提醒",
+					"⚠️ ["+r.printInstId()+"] RSI提醒",
 					fmt.Sprintf("[%s][%s] Price: %.2f, RSI: %.2f",
 						r.dataProvider.Name(),
 						fmt.Sprintf("%dm", int(r.bar.Minutes())),
 						candle.Value, curRSI),
-					false,
+					"指标监控",
 				)
 			}
 
@@ -162,13 +162,13 @@ func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
 					common.Notify(
 						"❌ ["+r.printInstId()+"]自动买入失败",
 						fmt.Sprintf("Error: %v", err),
-						false,
+						"自动交易",
 					)
 				} else {
 					common.Notify(
 						"🚀 ["+r.printInstId()+"]自动买入提醒",
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
-						false,
+						"自动交易",
 					)
 					fmt.Printf("[%s]买入成功，订单号：%s\n", r.printInstId(), orderID)
 					r.lastBuyTrade.OrderTime = time.Now()
@@ -194,13 +194,13 @@ func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
 					common.Notify(
 						"❌ ["+r.printInstId()+"]自动卖出失败",
 						fmt.Sprintf("Error: %v", err),
-						false,
+						"自动交易",
 					)
 				} else {
 					common.Notify(
 						"🚀 ["+r.printInstId()+"]自动卖出提醒",
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
-						false,
+						"自动交易",
 					)
 					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
 					r.lastSellTrade.OrderTime = time.Now()
