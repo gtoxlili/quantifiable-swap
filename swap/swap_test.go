@@ -13,6 +13,8 @@ func TestDefaultCanSell(t *testing.T) {
 	curRSI := 74.11
 	lastBuyTrade := &LastTrade{
 		OrderTime: time.Unix(0, 0),
+		RSI:       float64(intsets.MaxInt),
+		Price:     float64(intsets.MaxInt),
 	}
 
 	bar := time.Minute

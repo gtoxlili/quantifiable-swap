@@ -140,7 +140,7 @@ func (r *RSIWaper) RunWithCustomPeriod(
 			}
 
 			if err := r.canBuy(rsiQueue, curRSI, r.lastBuyTrade, r.bar); err != nil {
-				if errors.Is(err, ErrBuyTooFrequent) {
+				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				}
 				continue
@@ -167,7 +167,7 @@ func (r *RSIWaper) RunWithCustomPeriod(
 			}
 
 			if err := r.canSell(rsiQueue, curRSI, r.lastSellTrade, r.bar); err != nil {
-				if errors.Is(err, ErrSellTooFrequent) {
+				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), time.Now().Format("15:04:05"), err)
 				}
 				continue
