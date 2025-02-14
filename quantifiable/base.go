@@ -75,7 +75,7 @@ func (b *IndicatorBuilder[T]) WithCustom(name string, fn func(seq sequence.Seque
 
 type IndicatorDecorator[T Number] interface {
 	Update() (*sequence.Candle[T], error)
-	Indicator(name string) IndicatorMetrics[T]
+	Indicator(name string) (IndicatorMetrics[T], error)
 }
 
 func (b *IndicatorBuilder[T]) Build() (IndicatorDecorator[T], error) {
@@ -93,6 +93,9 @@ type IndicatorSet[T Number] struct {
 	metrics map[string]IndicatorMetrics[T]
 }
 
-func (s *IndicatorSet[T]) Indicator(name string) IndicatorMetrics[T] {
-	return s.metrics[name]
+func (s *IndicatorSet[T]) Indicator(name string) (IndicatorMetrics[T], error) {
+	if m, ok := s.metrics[name]; ok {
+		return m, nil
+	}
+	return nil, fmt.Errorf("未找到指标 [%s]", name)
 }

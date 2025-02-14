@@ -125,13 +125,13 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			curRSI := rsiHook.CurrentVal()
 
 			// 当前价格，当前 RSI
-			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f, VOL: %.2f\n",
+			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n",
 				r.printInstId(),
 				r.dataProvider.Name(),
 				fmt.Sprintf("%dm", int(r.bar.Minutes())),
 				candle.Time.Format("15:04:05"),
 				candle.Value, curRSI,
-				hook.Indicator("VOL").CurrentVal(),
+				//hook.Indicator("VOL").CurrentVal(),
 			)
 
 			// 通用 RSI 提醒
