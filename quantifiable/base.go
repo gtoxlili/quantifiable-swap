@@ -60,6 +60,19 @@ func (b *IndicatorBuilder[T]) WithVol() *IndicatorBuilder[T] {
 	return b
 }
 
+func (b *IndicatorBuilder[T]) WithCustom(name string, fn func(seq sequence.Sequence[T]) (Indicator[T], error)) *IndicatorBuilder[T] {
+	if b.err != nil {
+		return b
+	}
+	ind, err := fn(b.seq)
+	if err != nil {
+		b.err = fmt.Errorf("创建[%s]包装器失败：%w", name, err)
+	}
+	b.seq = ind
+	b.metrics[name] = ind
+	return b
+}
+
 type IndicatorDecorator[T Number] interface {
 	Update() (*sequence.Candle[T], error)
 	Indicator(name string) IndicatorMetrics[T]
