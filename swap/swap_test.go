@@ -122,6 +122,21 @@ type mockRSIHook struct {
 	currentIndex int
 }
 
+func (m *mockRSIHook) Candles() []sequence.Candle[float64] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *mockRSIHook) Bar() time.Duration {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *mockRSIHook) LastBarIndex() int {
+	//TODO implement me
+	panic("implement me")
+}
+
 // Update 模拟获取最新蜡烛数据，这里仅返回一个虚拟蜡烛（在 runRSILoop 中只关心时间和价格就可）
 func (m *mockRSIHook) Update() (*sequence.Candle[float64], error) {
 	if m.currentIndex >= len(m.rsiValues) {

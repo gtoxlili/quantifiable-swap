@@ -8,7 +8,7 @@ import (
 
 // RSIIndicator defines the interface for RSI calculations
 type RSIIndicator[T constraints.Integer | constraints.Float] interface {
-	Update() (*sequence.Candle[T], error)
+	sequence.Sequence[T]
 	CurrentRSI() float64
 	PreviousRSIs() []float64
 }

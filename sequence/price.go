@@ -26,7 +26,7 @@ type PriceSequence struct {
 
 // NewPriceSequence 返回一个新的价格序列
 func NewPriceSequence(base, quote string, bar time.Duration, maxLen int, dataProvider provider.Provider) (Sequence[float64], error) {
-	scale := int(bar / time.Minute)
+	scale := int(bar / Frequency)
 	ps := &PriceSequence{
 		base:         base,
 		quote:        quote,
