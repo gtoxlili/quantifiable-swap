@@ -2,21 +2,15 @@ package quantifiable
 
 import (
 	"github.com/gtoxlili/quantifiable-swap/sequence"
-	"golang.org/x/exp/constraints"
 	"math"
 )
 
-type VolIndicator[T constraints.Integer | constraints.Float] interface {
-	sequence.Sequence[T]
-	CurrentVol() float64
-}
-
-type Vol[T constraints.Integer | constraints.Float] struct {
+type Vol[T Number] struct {
 	scale int
 	sequence.Sequence[T]
 }
 
-func NewVol[T constraints.Integer | constraints.Float](seq sequence.Sequence[T]) (VolIndicator[T], error) {
+func NewVol[T Number](seq sequence.Sequence[T]) (Indicator[T], error) {
 	vol := &Vol[T]{
 		scale:    int(seq.Bar() / sequence.Frequency),
 		Sequence: seq,
@@ -24,7 +18,7 @@ func NewVol[T constraints.Integer | constraints.Float](seq sequence.Sequence[T])
 	return vol, nil
 }
 
-func (vol *Vol[T]) CurrentVol() float64 {
+func (vol *Vol[T]) CurrentVal() float64 {
 	return vol.calculateVol()
 }
 
@@ -50,4 +44,13 @@ func (vol *Vol[T]) calculateVol() float64 {
 	variance := varianceSum / float64(len(aggregatedData)-1)
 
 	return math.Sqrt(variance)
+}
+
+func (vol *Vol[T]) PreviousVals() []float64 {
+	panic("implement me")
+}
+
+func (vol *Vol[T]) Update() (*sequence.Candle[T], error) {
+	// defer fmt.Println("Vol Update")
+	return vol.Sequence.Update()
 }

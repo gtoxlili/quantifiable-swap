@@ -3,6 +3,7 @@ package swap
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/quantifiable"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/tools/container/intsets"
 	"testing"
@@ -122,6 +123,10 @@ type mockRSIHook struct {
 	currentIndex int
 }
 
+func (m *mockRSIHook) Indicator(name string) quantifiable.IndicatorMetrics[float64] {
+	return m
+}
+
 func (m *mockRSIHook) Candles() []sequence.Candle[float64] {
 	//TODO implement me
 	panic("implement me")
@@ -152,7 +157,7 @@ func (m *mockRSIHook) Update() (*sequence.Candle[float64], error) {
 }
 
 // CurrentRSI 返回当前 RSI 值
-func (m *mockRSIHook) CurrentRSI() float64 {
+func (m *mockRSIHook) CurrentVal() float64 {
 	if m.currentIndex == 0 {
 		return 50.0 // 如果还没 Update，就给个中间值
 	}
@@ -163,7 +168,7 @@ func (m *mockRSIHook) CurrentRSI() float64 {
 }
 
 // LastRSIs 返回最近若干个 RSI 值
-func (m *mockRSIHook) PreviousRSIs() []float64 {
+func (m *mockRSIHook) PreviousVals() []float64 {
 	return m.rsiValues[m.currentIndex-6 : m.currentIndex-1]
 }
 
@@ -183,12 +188,12 @@ func TestRSIWaper_runRSILoop_BuySell(t *testing.T) {
 	}
 
 	okxProvider := provider.NewOkx()
-	r := NewRSIWaper("BTC", "USDT", time.Minute, "10", "10", okxProvider)
+	r := NewWaper("BTC", "USDT", time.Minute, "10", "10", okxProvider)
 
 	go func() {
 		time.Sleep(2 * time.Second)
 		r.Stop()
 	}()
 
-	r.runRSILoop(mockHook)
+	r.runIndicatorLoop(mockHook)
 }

@@ -3,15 +3,7 @@ package quantifiable
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
-	"golang.org/x/exp/constraints"
 )
-
-// RSIIndicator defines the interface for RSI calculations
-type RSIIndicator[T constraints.Integer | constraints.Float] interface {
-	sequence.Sequence[T]
-	CurrentRSI() float64
-	PreviousRSIs() []float64
-}
 
 // gainLoss represents the average gain and loss
 type gainLoss struct {
@@ -19,7 +11,7 @@ type gainLoss struct {
 }
 
 // RSI represents the RSI calculation for a sequence
-type RSI[T constraints.Integer | constraints.Float] struct {
+type RSI[T Number] struct {
 	period int
 	sequence.Sequence[T]
 	historicalAverages []gainLoss
@@ -28,7 +20,7 @@ type RSI[T constraints.Integer | constraints.Float] struct {
 }
 
 // NewRSI creates a new RSI wrapper
-func NewRSI[T constraints.Integer | constraints.Float](period int, seq sequence.Sequence[T]) (RSIIndicator[T], error) {
+func NewRSI[T Number](period int, seq sequence.Sequence[T]) (Indicator[T], error) {
 	scale := int(seq.Bar() / sequence.Frequency)
 	rsi := &RSI[T]{
 		period:             period,
@@ -44,10 +36,11 @@ func NewRSI[T constraints.Integer | constraints.Float](period int, seq sequence.
 
 // Update Hook
 func (rsi *RSI[T]) Update() (*sequence.Candle[T], error) {
+	// defer fmt.Println("RSI Update")
 	// 调用底层 Sequence 的 Update() 得到最新的 1 分钟 Candle
 
 	// 备份上一次的 RSI 值
-	rsi.recentRSIQueue = append(rsi.recentRSIQueue, rsi.CurrentRSI())
+	rsi.recentRSIQueue = append(rsi.recentRSIQueue, rsi.CurrentVal())
 	if len(rsi.recentRSIQueue) > 5 {
 		rsi.recentRSIQueue = rsi.recentRSIQueue[1:]
 	}
@@ -101,7 +94,7 @@ func (rsi *RSI[T]) Update() (*sequence.Candle[T], error) {
 	return &candles[lastIdx], nil
 }
 
-func (rsi *RSI[T]) CurrentRSI() float64 {
+func (rsi *RSI[T]) CurrentVal() float64 {
 	index := rsi.Sequence.LastBarIndex()
 	avg := rsi.historicalAverages[index]
 	if avg.averageLoss == 0 {
@@ -111,7 +104,7 @@ func (rsi *RSI[T]) CurrentRSI() float64 {
 	return 100 - 100/(1+rs)
 }
 
-func (rsi *RSI[T]) PreviousRSIs() []float64 {
+func (rsi *RSI[T]) PreviousVals() []float64 {
 	return rsi.recentRSIQueue
 }
 

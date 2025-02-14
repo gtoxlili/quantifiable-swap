@@ -1,6 +1,8 @@
 package sequence
 
-import "time"
+import (
+	"time"
+)
 
 type Candle[T any] struct {
 	Time  time.Time

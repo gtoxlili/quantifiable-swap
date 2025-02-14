@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-type IndicatorHook = interface {
-	quantifiable.RSIIndicator[float64]
-	//quantifiable.VolIndicator[float64]
-}
-
 // LastTrade 最后一次 购买/卖出 的快照
 type LastTrade struct {
 	OrderTime time.Time
@@ -100,26 +95,19 @@ func (r *IndicatorWaper) RunWithCustomPeriod(period int) {
 	r.runIndicatorLoop(rsiHook)
 }
 
-func (r *IndicatorWaper) prepareIndicatorHook(period int) (IndicatorHook, error) {
+func (r *IndicatorWaper) prepareIndicatorHook(period int) (quantifiable.IndicatorDecorator[float64], error) {
 	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
 		return nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
 
-	//volHook, err := quantifiable.NewVol(priceSeq)
-	//if err != nil {
-	//	return nil, fmt.Errorf("创建波动率包装器失败：%w", err)
-	//}
-
-	rsiHook, err := quantifiable.NewRSI(period, priceSeq)
-	if err != nil {
-		return nil, fmt.Errorf("创建 RSI 包装器失败：%w", err)
-	}
-
-	return rsiHook, nil
+	return quantifiable.NewIndicatorBuilder(priceSeq).
+		WithVol().
+		WithRSI(period).
+		Build()
 }
 
-func (r *IndicatorWaper) runIndicatorLoop(hook IndicatorHook) {
+func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[float64]) {
 	for {
 		select {
 		case <-r.stopChan:
@@ -132,11 +120,19 @@ func (r *IndicatorWaper) runIndicatorLoop(hook IndicatorHook) {
 				continue
 			}
 
-			rsiQueue := hook.PreviousRSIs()
-			curRSI := hook.CurrentRSI()
+			rsiHook := hook.Indicator("RSI")
+			rsiQueue := rsiHook.PreviousVals()
+			curRSI := rsiHook.CurrentVal()
 
 			// 当前价格，当前 RSI
-			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n", r.printInstId(), r.dataProvider.Name(), fmt.Sprintf("%dm", int(r.bar.Minutes())), candle.Time.Format("15:04:05"), candle.Value, curRSI)
+			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f, VOL: %.2f\n",
+				r.printInstId(),
+				r.dataProvider.Name(),
+				fmt.Sprintf("%dm", int(r.bar.Minutes())),
+				candle.Time.Format("15:04:05"),
+				candle.Value, curRSI,
+				hook.Indicator("VOL").CurrentVal(),
+			)
 
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {

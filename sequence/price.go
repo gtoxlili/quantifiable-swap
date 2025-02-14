@@ -85,6 +85,7 @@ func (ps *PriceSequence) Bar() time.Duration {
 
 // Update 更新价格序列
 func (ps *PriceSequence) Update() (*Candle[float64], error) {
+	// defer fmt.Println("PriceSequence Update")
 	// 延迟 bar 时间
 	if err := ps.delay(); err != nil {
 		return nil, err
