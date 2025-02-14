@@ -117,10 +117,14 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			candle, err := hook.Update()
 			if err != nil {
 				fmt.Printf("更新价格序列失败：%v\n", err)
-				continue
+				return
 			}
 
-			rsiHook := hook.Indicator("RSI")
+			rsiHook, err := hook.Indicator("RSI")
+			if err != nil {
+				fmt.Printf("获取 RSI 指标失败：%v\n", err)
+				return
+			}
 			rsiQueue := rsiHook.PreviousVals()
 			curRSI := rsiHook.CurrentVal()
 
