@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+type IndicatorHook = interface {
+	quantifiable.RSIIndicator[float64]
+	//quantifiable.VolIndicator[float64]
+}
+
 // LastTrade 最后一次 购买/卖出 的快照
 type LastTrade struct {
 	OrderTime time.Time
@@ -19,8 +24,8 @@ type LastTrade struct {
 	RSI       float64
 }
 
-// RSIWaper manages RSI-based auto-trading logic
-type RSIWaper struct {
+// IndicatorWaper manages Indicator-based auto-trading logic
+type IndicatorWaper struct {
 	lastSellTrade *LastTrade
 	lastBuyTrade  *LastTrade
 
@@ -41,18 +46,18 @@ type RSIWaper struct {
 	dataProvider provider.Provider
 }
 
-// NewRSINotify 不进行自动下单的 Waper （只提醒）
-func NewRSINotify(base, quote string, bar time.Duration, dataProvider provider.Provider) *RSIWaper {
-	return NewRSIWaperWithCustomSellBuy(base, quote, bar, "", "", false, nil, nil, dataProvider)
+// NewNotify 不进行自动下单的 Waper （只提醒）
+func NewNotify(base, quote string, bar time.Duration, dataProvider provider.Provider) *IndicatorWaper {
+	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, "", "", false, nil, nil, dataProvider)
 }
 
-// NewRSIWaper creates a new RSIWaper instance
-func NewRSIWaper(base, quote string, bar time.Duration, sellAmount, buyAmount string, dataProvider provider.Provider) *RSIWaper {
-	return NewRSIWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
+// NewWaper creates a new Waper instance
+func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount string, dataProvider provider.Provider) *IndicatorWaper {
+	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) *RSIWaper {
-	return &RSIWaper{
+func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) *IndicatorWaper {
+	return &IndicatorWaper{
 		base:         base,
 		quote:        quote,
 		bar:          bar,
@@ -78,52 +83,57 @@ func NewRSIWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmo
 	}
 }
 
-func (r *RSIWaper) Stop() {
+func (r *IndicatorWaper) Stop() {
 	close(r.stopChan)
 }
 
-func (r *RSIWaper) Run() {
+func (r *IndicatorWaper) Run() {
 	r.RunWithCustomPeriod(14)
 }
 
-func (r *RSIWaper) RunWithCustomPeriod(period int) {
-	_, rsiHook, err := r.prepareRSIHook(period)
+func (r *IndicatorWaper) RunWithCustomPeriod(period int) {
+	rsiHook, err := r.prepareIndicatorHook(period)
 	if err != nil {
 		fmt.Printf("[%s] %v\n", r.printInstId(), err)
 		return
 	}
-	r.runRSILoop(rsiHook)
+	r.runIndicatorLoop(rsiHook)
 }
 
-func (r *RSIWaper) prepareRSIHook(period int) (sequence.Sequence[float64], quantifiable.RSIIndicator[float64], error) {
+func (r *IndicatorWaper) prepareIndicatorHook(period int) (IndicatorHook, error) {
 	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
-		return nil, nil, fmt.Errorf("创建价格序列失败：%w", err)
+		return nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
+
+	//volHook, err := quantifiable.NewVol(priceSeq)
+	//if err != nil {
+	//	return nil, fmt.Errorf("创建波动率包装器失败：%w", err)
+	//}
 
 	rsiHook, err := quantifiable.NewRSI(period, priceSeq)
 	if err != nil {
-		return nil, nil, fmt.Errorf("创建 RSI 包装器失败：%w", err)
+		return nil, fmt.Errorf("创建 RSI 包装器失败：%w", err)
 	}
 
-	return priceSeq, rsiHook, nil
+	return rsiHook, nil
 }
 
-func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
+func (r *IndicatorWaper) runIndicatorLoop(hook IndicatorHook) {
 	for {
 		select {
 		case <-r.stopChan:
 			fmt.Printf("[%s] RSIWAP 策略已停止\n", r.printInstId())
 			return
 		default:
-			candle, err := rsiHook.Update()
+			candle, err := hook.Update()
 			if err != nil {
 				fmt.Printf("更新价格序列失败：%v\n", err)
 				continue
 			}
 
-			rsiQueue := rsiHook.PreviousRSIs()
-			curRSI := rsiHook.CurrentRSI()
+			rsiQueue := hook.PreviousRSIs()
+			curRSI := hook.CurrentRSI()
 
 			// 当前价格，当前 RSI
 			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n", r.printInstId(), r.dataProvider.Name(), fmt.Sprintf("%dm", int(r.bar.Minutes())), candle.Time.Format("15:04:05"), candle.Value, curRSI)
@@ -213,6 +223,6 @@ func (r *RSIWaper) runRSILoop(rsiHook quantifiable.RSIIndicator[float64]) {
 }
 
 // 美化打印交易对
-func (r *RSIWaper) printInstId() string {
+func (r *IndicatorWaper) printInstId() string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(r.base), strings.ToUpper(r.quote))
 }

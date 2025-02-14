@@ -6,29 +6,29 @@ import (
 	"math"
 )
 
-type VolatilityIndicator[T constraints.Integer | constraints.Float] interface {
+type VolIndicator[T constraints.Integer | constraints.Float] interface {
 	sequence.Sequence[T]
-	CurrentVolatility() float64
+	CurrentVol() float64
 }
 
-type Volatility[T constraints.Integer | constraints.Float] struct {
+type Vol[T constraints.Integer | constraints.Float] struct {
 	scale int
 	sequence.Sequence[T]
 }
 
-func NewVolatility[T constraints.Integer | constraints.Float](seq sequence.Sequence[T]) (VolatilityIndicator[T], error) {
-	vol := &Volatility[T]{
+func NewVol[T constraints.Integer | constraints.Float](seq sequence.Sequence[T]) (VolIndicator[T], error) {
+	vol := &Vol[T]{
 		scale:    int(seq.Bar() / sequence.Frequency),
 		Sequence: seq,
 	}
 	return vol, nil
 }
 
-func (vol *Volatility[T]) CurrentVolatility() float64 {
-	return vol.calculateVolatility()
+func (vol *Vol[T]) CurrentVol() float64 {
+	return vol.calculateVol()
 }
 
-func (vol *Volatility[T]) calculateVolatility() float64 {
+func (vol *Vol[T]) calculateVol() float64 {
 	candles := vol.Candles()
 	if len(candles) < vol.scale || vol.scale <= 1 {
 		return 0
