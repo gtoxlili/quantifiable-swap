@@ -11,6 +11,8 @@ type TradeCondition struct {
 	lst      *LastTrade    // 上次交易快照（RSI, Price, OrderTime）
 	bar      time.Duration // K 线周期
 	price    float64       // 当前价格
+	ma5      float64       // 5 周期均线
+	ma20     float64       // 20 周期均线
 }
 
 // canSell determines if the RSI suggests a sell signal

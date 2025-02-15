@@ -47,16 +47,16 @@ func (b *IndicatorBuilder[T]) WithRSI(period int) *IndicatorBuilder[T] {
 	return b
 }
 
-func (b *IndicatorBuilder[T]) WithVol() *IndicatorBuilder[T] {
+func (b *IndicatorBuilder[T]) WithMA(window int) *IndicatorBuilder[T] {
 	if b.err != nil {
 		return b
 	}
-	vol, err := NewVol(b.seq)
+	ma, err := NewMA(window, b.seq)
 	if err != nil {
-		b.err = fmt.Errorf("创建波动率包装器失败：%w", err)
+		b.err = fmt.Errorf("创建 MA%d 包装器失败：%w", window, err)
 	}
-	b.seq = vol
-	b.metrics["VOL"] = vol
+	b.seq = ma
+	b.metrics[fmt.Sprintf("MA%d", window)] = ma
 	return b
 }
 

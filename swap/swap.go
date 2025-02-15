@@ -102,7 +102,8 @@ func (r *IndicatorWaper) prepareIndicatorHook(period int) (quantifiable.Indicato
 	}
 
 	return quantifiable.NewIndicatorBuilder(priceSeq).
-		WithVol().
+		WithMA(5).
+		WithMA(20).
 		WithRSI(period).
 		Build()
 }
@@ -120,12 +121,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				return
 			}
 
-			rsiHook, err := hook.Indicator("RSI")
-			if err != nil {
-				fmt.Printf("获取 RSI 指标失败：%v\n", err)
-				return
-			}
-			rsiQueue := rsiHook.PreviousVals()
+			rsiHook, _ := hook.Indicator("RSI")
 			curRSI := rsiHook.CurrentVal()
 
 			// 当前价格，当前 RSI
@@ -155,13 +151,20 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				continue
 			}
 
-			if err := r.canBuy(TradeCondition{
-				rsiQueue: rsiQueue,
+			ma5Hook, _ := hook.Indicator("MA5")
+			ma20Hook, _ := hook.Indicator("MA20")
+
+			condition := TradeCondition{
+				rsiQueue: rsiHook.PreviousVals(),
 				curRSI:   curRSI,
 				lst:      r.lastBuyTrade,
 				bar:      r.bar,
 				price:    candle.Value,
-			}); err != nil {
+				ma5:      ma5Hook.CurrentVal(),
+				ma20:     ma20Hook.CurrentVal(),
+			}
+
+			if err := r.canBuy(condition); err != nil {
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
@@ -187,13 +190,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				}
 			}
 
-			if err := r.canSell(TradeCondition{
-				rsiQueue: rsiQueue,
-				curRSI:   curRSI,
-				lst:      r.lastSellTrade,
-				bar:      r.bar,
-				price:    candle.Value,
-			}); err != nil {
+			if err := r.canSell(condition); err != nil {
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
 					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
