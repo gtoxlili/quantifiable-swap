@@ -131,8 +131,10 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			lstMA5 := ma5Hook.PreviousVals()
 			lstMA20 := ma20Hook.PreviousVals()
 
-			// 当前价格，当前 RSI
-			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f, MA5: %.2f, MA20: %.2f\n",
+			fmt.Printf("\033[1;34m[%s]\033[0m | \033[1;34m[%s]\033[0m | \033[1;34m[%s]\033[0m | "+
+				"Time: \033[1;33m%s\033[0m | Price: \033[1;32m%.2f\033[0m | "+
+				"RSI: \033[1;31m%.2f\033[0m | MA5: \033[1;35m%.2f\033[0m | "+
+				"MA20: \033[1;36m%.2f\033[0m\n",
 				r.printInstId(),
 				r.dataProvider.Name(),
 				fmt.Sprintf("%dm", int(r.bar.Minutes())),
