@@ -122,17 +122,36 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			}
 
 			rsiHook, _ := hook.Indicator("RSI")
+			ma5Hook, _ := hook.Indicator("MA5")
+			ma20Hook, _ := hook.Indicator("MA20")
+
 			curRSI := rsiHook.CurrentVal()
+			ma5 := ma5Hook.CurrentVal()
+			ma20 := ma20Hook.CurrentVal()
+			lstMA5 := ma5Hook.PreviousVals()
+			lstMA20 := ma20Hook.PreviousVals()
 
 			// 当前价格，当前 RSI
-			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f\n",
+			fmt.Printf("[%s][%s][%s]: Time: %s, Price: %.2f, RSI: %.2f, MA5: %.2f, MA20: %.2f\n",
 				r.printInstId(),
 				r.dataProvider.Name(),
 				fmt.Sprintf("%dm", int(r.bar.Minutes())),
 				candle.Time.Format("15:04:05"),
 				candle.Value, curRSI,
-				//hook.Indicator("VOL").CurrentVal(),
+				ma5, ma20,
 			)
+
+			// 交叉提醒
+			if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
+				common.Notify(
+					"⚠️ ["+r.printInstId()+"] 均线交叉提醒",
+					fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
+						r.dataProvider.Name(),
+						fmt.Sprintf("%dm", int(r.bar.Minutes())), text,
+						candle.Value, ma5, ma20),
+					"指标监控",
+				)
+			}
 
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
@@ -151,17 +170,14 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				continue
 			}
 
-			ma5Hook, _ := hook.Indicator("MA5")
-			ma20Hook, _ := hook.Indicator("MA20")
-
 			condition := TradeCondition{
 				rsiQueue: rsiHook.PreviousVals(),
 				curRSI:   curRSI,
 				lst:      r.lastBuyTrade,
 				bar:      r.bar,
 				price:    candle.Value,
-				ma5:      ma5Hook.CurrentVal(),
-				ma20:     ma20Hook.CurrentVal(),
+				ma5:      ma5,
+				ma20:     ma20,
 			}
 
 			if err := r.canBuy(condition); err != nil {
