@@ -33,27 +33,44 @@ func (w *TelegramWriter) Write(p []byte) (n int, err error) {
 
 func (w *TelegramWriter) processEntries() {
 	for entry := range w.entries {
-		msgText, err := formatLogEntry(entry)
-		if err != nil {
-			fmt.Printf("解析Bot日志流失败: %v\n", err)
+		var logData map[string]interface{}
+		if err := json.Unmarshal(entry, &logData); err != nil {
+			fmt.Printf("解析Bot日志失败: %v\n", err)
 			continue
 		}
+		msgText := formatLogEntry(logData)
 
 		msg := tgApi.NewMessage(w.chatID, msgText)
 		msg.ParseMode = tgApi.ModeHTML
-		_, err = w.bot.Send(msg)
+		// 置顶
+		remote, err := w.bot.Send(msg)
 		if err != nil {
 			// 处理发送错误，可以添加重试逻辑
 			fmt.Printf("发送Bot消息失败: %v\n", err)
 		}
+		// 如果 rsi 大于 70/小于 30，发送警告
+		if rsi, ok := logData["RSI"].(float64); ok {
+			w.alertPin(rsi, &remote)
+		}
 	}
 }
 
-func formatLogEntry(data []byte) (string, error) {
-	var logData map[string]interface{}
-	if err := json.Unmarshal(data, &logData); err != nil {
-		return "", err
+// 置顶警告
+func (w *TelegramWriter) alertPin(rsi float64, remote *tgApi.Message) {
+	if rsi > 70 || rsi < 30 {
+		pinMsg := &tgApi.PinChatMessageConfig{
+			ChatID:              w.chatID,
+			MessageID:           remote.MessageID,
+			DisableNotification: false,
+		}
+		_, err := w.bot.Request(pinMsg)
+		if err != nil {
+			fmt.Printf("置顶Bot消息失败: %v\n", err)
+		}
 	}
+}
+
+func formatLogEntry(logData map[string]interface{}) string {
 
 	b := &bytes.Buffer{}
 
@@ -81,7 +98,7 @@ func formatLogEntry(data []byte) (string, error) {
 		handleInfo(b, logData)
 	}
 
-	return b.String(), nil
+	return b.String()
 }
 
 func handleError(b *bytes.Buffer, data map[string]interface{}) {

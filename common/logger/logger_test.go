@@ -28,7 +28,7 @@ func TestNewLogger(t *testing.T) {
 
 	// Test indicator log
 	testTime := time.Now()
-	logger.PrintIndicatorLog(testTime, 50000.0, 65.5, 49000.0, 48000.0)
+	logger.PrintIndicatorLog(testTime, 50000.0, 90.5, 49000.0, 48000.0)
 
 	// Test error with time
 	logger.PrintErrorWithTime(testTime, testErr)
