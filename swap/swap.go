@@ -89,7 +89,7 @@ func (r *IndicatorWaper) Run() {
 func (r *IndicatorWaper) RunWithCustomPeriod(period int) {
 	rsiHook, err := r.prepareIndicatorHook(period)
 	if err != nil {
-		fmt.Printf("[%s] %v\n", r.printInstId(), err)
+		fmt.Printf("\033[1;34m[%s]\033[0m | \033[1;31mError\033[0m: %v\n", r.printInstId(), err)
 		return
 	}
 	r.runIndicatorLoop(rsiHook)
@@ -112,12 +112,12 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 	for {
 		select {
 		case <-r.stopChan:
-			fmt.Printf("[%s] RSIWAP 策略已停止\n", r.printInstId())
+			fmt.Printf("\033[1;34m[%s]\033[0m | \033[1;35mRSIWAP 策略已停止\033[0m\n", r.printInstId())
 			return
 		default:
 			candle, err := hook.Update()
 			if err != nil {
-				fmt.Printf("更新价格序列失败：%v\n", err)
+				fmt.Printf("\033[1;31m更新价格序列失败\033[0m: %v\n", err)
 				return
 			}
 
@@ -131,7 +131,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			lstMA5 := ma5Hook.PreviousVals()
 			lstMA20 := ma20Hook.PreviousVals()
 
-			fmt.Printf("\033[1;34m[%s]\033[0m | \033[1;34m[%s]\033[0m | \033[1;34m[%s]\033[0m | "+
+			fmt.Printf("\033[1;34m[%s]\033[0m\033[1;34m[%s]\033[0m\033[1;34m[%s]\033[0m | "+
 				"Time: \033[1;33m%s\033[0m | Price: \033[1;32m%.2f\033[0m | "+
 				"RSI: \033[1;31m%.2f\033[0m | MA5: \033[1;35m%.2f\033[0m | "+
 				"MA20: \033[1;36m%.2f\033[0m\n",
@@ -144,15 +144,18 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			)
 
 			// 交叉提醒
-			if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
-				common.Notify(
-					"⚠️ ["+r.printInstId()+"] 均线交叉提醒",
-					fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
-						r.dataProvider.Name(),
-						fmt.Sprintf("%dm", int(r.bar.Minutes())), text,
-						candle.Value, ma5, ma20),
-					"指标监控",
-				)
+			// 只有在初始点才提示是否交叉
+			if candle.Time.Truncate(r.bar).Equal(candle.Time) {
+				if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
+					common.Notify(
+						"⚠️ ["+r.printInstId()+"] 均线交叉提醒",
+						fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
+							r.dataProvider.Name(),
+							fmt.Sprintf("%dm", int(r.bar.Minutes())), text,
+							candle.Value, ma5, ma20),
+						"指标监控",
+					)
+				}
 			}
 
 			// 通用 RSI 提醒
@@ -184,12 +187,13 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 
 			if err := r.canBuy(condition); err != nil {
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
-					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
+					fmt.Printf("\033[1;34m[%s]\033[0m | Time: \033[1;33m%s\033[0m | \033[1;31mError\033[0m: %v\n",
+						r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
-					fmt.Printf("[%s]买入失败：%v\n", r.printInstId(), err)
+					fmt.Printf("\033[1;34m[%s]\033[0m \033[1;31m买入失败\033[0m: %v\n", r.printInstId(), err)
 					common.Notify(
 						"❌ ["+r.printInstId()+"]自动买入失败",
 						fmt.Sprintf("Error: %v", err),
@@ -201,7 +205,8 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
 						"自动交易",
 					)
-					fmt.Printf("[%s]买入成功，订单号：%s\n", r.printInstId(), orderID)
+					fmt.Printf("\033[1;34m[%s]\033[0m \033[1;32m买入成功\033[0m | 订单号: \033[1;36m%s\033[0m\n",
+						r.printInstId(), orderID)
 					r.lastBuyTrade.OrderTime = time.Now()
 					r.lastBuyTrade.Price = candle.Value
 					r.lastBuyTrade.RSI = curRSI
@@ -210,12 +215,13 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 
 			if err := r.canSell(condition); err != nil {
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
-					fmt.Printf("[%s] Time: %s, %v\n", r.printInstId(), candle.Time.Format("15:04:05"), err)
+					fmt.Printf("\033[1;34m[%s]\033[0m | Time: \033[1;33m%s\033[0m | \033[1;31mError\033[0m: %v\n",
+						r.printInstId(), candle.Time.Format("15:04:05"), err)
 				}
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
-					fmt.Printf("[%s]卖出失败：%v\n", r.printInstId(), err)
+					fmt.Printf("\033[1;34m[%s]\033[0m \033[1;31m卖出失败\033[0m: %v\n", r.printInstId(), err)
 					common.Notify(
 						"❌ ["+r.printInstId()+"]自动卖出失败",
 						fmt.Sprintf("Error: %v", err),
@@ -227,7 +233,8 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
 						"自动交易",
 					)
-					fmt.Printf("[%s]卖出成功，订单号：%s\n", r.printInstId(), orderID)
+					fmt.Printf("\033[1;34m[%s]\033[0m \033[1;32m卖出成功\033[0m | 订单号: \033[1;36m%s\033[0m\n",
+						r.printInstId(), orderID)
 					r.lastSellTrade.OrderTime = time.Now()
 					r.lastSellTrade.Price = candle.Value
 					r.lastSellTrade.RSI = curRSI

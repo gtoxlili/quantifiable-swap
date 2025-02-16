@@ -10,6 +10,8 @@ type MA[T Number] struct {
 	window               int       // Number of bars for the moving average window
 	recentMAQueue        []float64 // Keeps a rolling history of the last few MA values
 	sequence.Sequence[T]           // Embedded sequence providing candle data
+	// 当前 MA 值
+	currentMA float64
 }
 
 // NewMA initializes and returns a new MA instance.
@@ -19,13 +21,14 @@ func NewMA[T Number](window int, seq sequence.Sequence[T]) (Indicator[T], error)
 		scale:         int(seq.Bar() / sequence.Frequency),
 		Sequence:      seq,
 		recentMAQueue: []float64{-1, -1, -1, -1, -1},
+		currentMA:     -1,
 	}
 	return ma, nil
 }
 
 // CurrentVal returns the current moving average value.
 func (ma *MA[T]) CurrentVal() float64 {
-	return ma.calculateMA()
+	return ma.currentMA
 }
 
 // PreviousVals returns a slice of previously calculated moving average values.
@@ -35,13 +38,21 @@ func (ma *MA[T]) PreviousVals() []float64 {
 
 // Update updates the embedded sequence and appends the newly calculated moving average to recentMAQueue.
 func (ma *MA[T]) Update() (*sequence.Candle[T], error) {
-	// Append the most recent MA value
-	ma.recentMAQueue = append(ma.recentMAQueue, ma.calculateMA())
-	if len(ma.recentMAQueue) > 5 {
-		ma.recentMAQueue = ma.recentMAQueue[1:]
+	candle, err := ma.Sequence.Update()
+	if err != nil {
+		return nil, err
 	}
 
-	return ma.Sequence.Update()
+	if candle.Time.Truncate(ma.Bar()).Equal(candle.Time) {
+		// Append the most recent MA value
+		ma.recentMAQueue = append(ma.recentMAQueue, ma.currentMA)
+		if len(ma.recentMAQueue) > 5 {
+			ma.recentMAQueue = ma.recentMAQueue[1:]
+		}
+		ma.currentMA = ma.calculateMA()
+	}
+
+	return candle, nil
 }
 
 // calculateMA computes the moving average by summing every "scale-th" candle over the specified window.
