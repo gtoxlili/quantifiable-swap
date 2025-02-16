@@ -136,37 +136,18 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			lstMA5 := ma5Hook.PreviousVals()
 			lstMA20 := ma20Hook.PreviousVals()
 
-			isAlert := false
+			alert := ""
 			// 交叉提醒
-			// 只有在初始点才提示是否交叉
 			if candle.Time.Truncate(r.bar).Equal(candle.Time) {
-				isAlert = true
 				if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
-					common.Notify(
-						"⚠️ ["+r.printInstId()+"] 均线交叉提醒",
-						fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
-							r.dataProvider.Name(),
-							fmt.Sprintf("%dm", int(r.bar.Minutes())), text,
-							candle.Value, ma5, ma20),
-						"指标监控",
-					)
+					alert = text
 				}
 			}
-
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
-				isAlert = true
-				common.Notify(
-					"⚠️ ["+r.printInstId()+"] RSI提醒",
-					fmt.Sprintf("[%s][%s] Price: %.2f, RSI: %.2f",
-						r.dataProvider.Name(),
-						fmt.Sprintf("%dm", int(r.bar.Minutes())),
-						candle.Value, curRSI),
-					"指标监控",
-				)
+				alert = "RSI"
 			}
-
-			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, isAlert)
+			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, alert)
 
 			// 如果自动交易未开启，直接继续循环
 			if !r.autoTrade {
@@ -191,18 +172,8 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
 					r.log.PrintBuyFail(err)
-					common.Notify(
-						"❌ ["+r.printInstId()+"]自动买入失败",
-						fmt.Sprintf("Error: %v", err),
-						"自动交易",
-					)
 				} else {
-					common.Notify(
-						"🚀 ["+r.printInstId()+"]自动买入提醒",
-						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
-						"自动交易",
-					)
-					r.log.PrintBuySuccess(candle.Value, orderID)
+					r.log.PrintBuySuccess(candle.Value, curRSI, orderID)
 					r.lastBuyTrade.OrderTime = time.Now()
 					r.lastBuyTrade.Price = candle.Value
 					r.lastBuyTrade.RSI = curRSI
@@ -217,18 +188,8 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
 					r.log.PrintSellFail(err)
-					common.Notify(
-						"❌ ["+r.printInstId()+"]自动卖出失败",
-						fmt.Sprintf("Error: %v", err),
-						"自动交易",
-					)
 				} else {
-					common.Notify(
-						"🚀 ["+r.printInstId()+"]自动卖出提醒",
-						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
-						"自动交易",
-					)
-					r.log.PrintSellSuccess(candle.Value, orderID)
+					r.log.PrintSellSuccess(candle.Value, curRSI, orderID)
 					r.lastSellTrade.OrderTime = time.Now()
 					r.lastSellTrade.Price = candle.Value
 					r.lastSellTrade.RSI = curRSI
