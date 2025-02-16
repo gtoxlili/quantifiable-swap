@@ -4,11 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"github.com/gtoxlili/quantifiable-swap/client"
-	"github.com/gtoxlili/quantifiable-swap/constants"
 	"math"
-	"net/http"
-	"net/url"
 )
 
 func HmacSha256Sign(message, secrectKey string) ([]byte, error) {
@@ -20,30 +16,6 @@ func HmacSha256Sign(message, secrectKey string) ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
-}
-
-// Notify 发送 Bark 推送提醒
-func Notify(title, message string, groupName string) error {
-	baseURL := fmt.Sprintf(
-		"https://api.day.app/%s/%s/%s?group=%s",
-		constants.BarkToken,
-		url.QueryEscape(title),
-		url.QueryEscape(message),
-		url.QueryEscape(groupName),
-	)
-
-	req, err := http.NewRequest(http.MethodGet, baseURL, nil)
-	if err != nil {
-		return fmt.Errorf("create notify request failed: %w", err)
-	}
-
-	resp, err := client.C.Do(req)
-	if err != nil {
-		return fmt.Errorf("notify request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	return nil
 }
 
 // ExtraPointsForInitialDecay 计算给定周期（period）下，使初始影响衰减至 0.1% 以下
