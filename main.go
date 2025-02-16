@@ -22,12 +22,12 @@ func main() {
 	btc15mNotify := swap.NewNotify("btc", "usdt", 15*time.Minute, bnProvider)
 	aero15mNotify := swap.NewNotify("aero", "usdt", 15*time.Minute, byBitProvider)
 
-	go eth15mWaper.RunWithCustomPeriod(21)
+	go eth15mWaper.Run()
 	go eth1hWaper.Run()
 	go eth4hWaper.Run()
-	go btc15mNotify.RunWithCustomPeriod(21)
+	go btc15mNotify.Run()
 	go aero1hWaper.Run()
-	go aero15mNotify.RunWithCustomPeriod(21)
+	go aero15mNotify.Run()
 
 	signChan := make(chan os.Signal, 1)
 	signal.Notify(signChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

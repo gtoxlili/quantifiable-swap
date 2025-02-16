@@ -74,6 +74,9 @@ func defaultCanBuy(tc TradeCondition) error {
 
 // 判断是否形成金叉或者死叉
 func crossOver(ma5, ma20 float64, lastMA5, lastMA20 float64) string {
+	if ma5 == -1 || ma20 == -1 {
+		return ""
+	}
 	if lastMA5 == -1 || lastMA20 == -1 {
 		return ""
 	}
