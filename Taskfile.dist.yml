@@ -8,6 +8,8 @@ vars:
   BARK_TOKEN:
   BYBIT_API_KEY:
   BYBIT_API_SECRET:
+  TG_BOT_TOKEN:
+  TG_CHAT_ID:
 
 tasks:
   clean:
@@ -28,6 +30,8 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.BarkToken={{.BARK_TOKEN}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey={{.BYBIT_API_KEY}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret={{.BYBIT_API_SECRET}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken={{.TG_BOT_TOKEN}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.TGChatID={{.TG_CHAT_ID}}' \
         -w -s -buildid="
   linux-amd64:
     vars:

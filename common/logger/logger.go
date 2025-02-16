@@ -1,8 +1,12 @@
 package logger
 
 import (
+	"github.com/gtoxlili/quantifiable-swap/bot"
+	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/rs/zerolog"
+	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -20,14 +24,20 @@ func init() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	zerolog.FloatingPointPrecision = 2
 
-	output := zerolog.ConsoleWriter{
+	var outSet []io.Writer
+	outSet = append(outSet, zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "15:04:05",
 		NoColor:    false,
+	})
+
+	if constants.TGChatID != "" {
+		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
+		outSet = append(outSet, bot.NewTelegramWriter(bot.B, chatId))
 	}
 
 	l = &Logger{
-		log: zerolog.New(output).With().Timestamp().Logger(),
+		log: zerolog.New(zerolog.MultiLevelWriter(outSet...)).With().Timestamp().Logger(),
 	}
 }
 

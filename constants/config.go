@@ -8,4 +8,6 @@ var (
 	BarkToken      = ""
 	ByBitAPIKey    = ""
 	ByBitAPISecret = ""
+	TGBotToken     = ""
+	TGChatID       = ""
 )
