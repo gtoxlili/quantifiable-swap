@@ -65,8 +65,12 @@ func (l *Logger) PrintUpdatePriceFail(err error) {
 }
 
 // PrintIndicatorLog 演示打印多个字段：时间、价格、RSI、MA5、MA20。
-func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma20 float64) {
-	l.log.Info().
+func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma20 float64, isAlert bool) {
+	log := l.log.Info()
+	if isAlert {
+		log = l.log.Warn()
+	}
+	log.
 		Time("Time", candleTime). // 时间
 		Float64("Price", price).  // 价格
 		Float64("RSI", curRSI).   // RSI

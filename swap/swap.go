@@ -136,11 +136,11 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			lstMA5 := ma5Hook.PreviousVals()
 			lstMA20 := ma20Hook.PreviousVals()
 
-			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20)
-
+			isAlert := false
 			// 交叉提醒
 			// 只有在初始点才提示是否交叉
 			if candle.Time.Truncate(r.bar).Equal(candle.Time) {
+				isAlert = true
 				if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
 					common.Notify(
 						"⚠️ ["+r.printInstId()+"] 均线交叉提醒",
@@ -155,6 +155,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
+				isAlert = true
 				common.Notify(
 					"⚠️ ["+r.printInstId()+"] RSI提醒",
 					fmt.Sprintf("[%s][%s] Price: %.2f, RSI: %.2f",
@@ -164,6 +165,8 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 					"指标监控",
 				)
 			}
+
+			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, isAlert)
 
 			// 如果自动交易未开启，直接继续循环
 			if !r.autoTrade {

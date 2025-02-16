@@ -34,7 +34,7 @@ func (cw *ConsoleWriter) processEntries() {
 	for entry := range cw.entry {
 		msgBytes, err := formatLogEntry(entry)
 		if err != nil {
-			fmt.Printf("解析Console日志失败: %v\n", err)
+			fmt.Printf("解析 Console 日志失败: %v\n", err)
 			continue
 		}
 
@@ -63,7 +63,7 @@ func formatLogEntry(data []byte) ([]byte, error) {
 	switch logData["level"] {
 	case "error":
 		handleError(b, logData)
-	case "info":
+	default:
 		handleInfo(b, logData)
 	}
 
