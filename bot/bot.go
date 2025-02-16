@@ -7,26 +7,17 @@ import (
 )
 
 var (
-	B *Bot
+	Bot *tgApi.BotAPI
 )
-
-type Bot struct {
-	*tgApi.BotAPI
-}
-
-func New(token string) *Bot {
-	bot, err := tgApi.NewBotAPIWithClient(token, tgApi.APIEndpoint, client.C)
-	if err != nil {
-		panic(err)
-	}
-
-	bot.Debug = false
-
-	return &Bot{bot}
-}
 
 func init() {
 	if constants.TGBotToken != "" {
-		B = New(constants.TGBotToken)
+		b, err := tgApi.NewBotAPIWithClient(constants.TGBotToken, tgApi.APIEndpoint, client.C)
+		if err != nil {
+			panic(err)
+		}
+
+		b.Debug = false
+		Bot = b
 	}
 }

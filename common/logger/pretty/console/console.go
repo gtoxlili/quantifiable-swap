@@ -1,4 +1,4 @@
-package pretty
+package console
 
 import (
 	"bytes"
@@ -34,7 +34,7 @@ func (cw *ConsoleWriter) processEntries() {
 	for entry := range cw.entry {
 		msgBytes, err := formatLogEntry(entry)
 		if err != nil {
-			fmt.Printf("解析日志失败: %v\n", err)
+			fmt.Printf("解析Console日志失败: %v\n", err)
 			continue
 		}
 

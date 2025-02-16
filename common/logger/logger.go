@@ -2,7 +2,8 @@ package logger
 
 import (
 	"github.com/gtoxlili/quantifiable-swap/bot"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/console"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/tglog"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/rs/zerolog"
 	"io"
@@ -26,11 +27,11 @@ func init() {
 	zerolog.FloatingPointPrecision = 2
 
 	var outSet []io.Writer
-	outSet = append(outSet, pretty.NewConsoleWriter(os.Stdout, "15:04:05"))
+	outSet = append(outSet, console.NewConsoleWriter(os.Stdout, "15:04:05"))
 
-	if bot.B != nil && constants.TGChatID != "" {
+	if bot.Bot != nil && constants.TGChatID != "" {
 		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
-		outSet = append(outSet, bot.NewTelegramWriter(bot.B, chatId))
+		outSet = append(outSet, tglog.NewTelegramWriter(bot.Bot, chatId))
 	}
 
 	l = &Logger{

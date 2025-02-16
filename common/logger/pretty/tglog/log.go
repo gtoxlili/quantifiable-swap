@@ -1,22 +1,22 @@
-package bot
+package tglog
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strings"
 )
 
 type TelegramWriter struct {
-	bot     *tgbotapi.BotAPI
+	bot     *tgApi.BotAPI
 	chatID  int64
 	entries chan []byte
 }
 
-func NewTelegramWriter(bot *Bot, chatID int64) *TelegramWriter {
+func NewTelegramWriter(bot *tgApi.BotAPI, chatID int64) *TelegramWriter {
 	tw := &TelegramWriter{
-		bot:     bot.BotAPI,
+		bot:     bot,
 		chatID:  chatID,
 		entries: make(chan []byte, 100), // 缓冲通道防止阻塞
 	}
@@ -35,16 +35,16 @@ func (w *TelegramWriter) processEntries() {
 	for entry := range w.entries {
 		msgText, err := formatLogEntry(entry)
 		if err != nil {
-			fmt.Printf("解析日志失败: %v\n", err)
+			fmt.Printf("解析Bot日志流失败: %v\n", err)
 			continue
 		}
 
-		msg := tgbotapi.NewMessage(w.chatID, msgText)
-		msg.ParseMode = tgbotapi.ModeHTML
+		msg := tgApi.NewMessage(w.chatID, msgText)
+		msg.ParseMode = tgApi.ModeHTML
 		_, err = w.bot.Send(msg)
 		if err != nil {
 			// 处理发送错误，可以添加重试逻辑
-			fmt.Printf("发送消息失败: %v\n", err)
+			fmt.Printf("发送Bot消息失败: %v\n", err)
 		}
 	}
 }
