@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Logger is a logger that encapsulates logging logic using zerolog.
+// Logger 是一个使用 zerolog 封装日志记录逻辑的 logger。
 type Logger struct {
 	log zerolog.Logger
 }
@@ -31,18 +31,18 @@ func init() {
 	}
 }
 
-// NewLogger creates a new Logger singleton instance.
+// NewLogger 创建一个新的 Logger 单例实例。
 func NewLogger(instID, dataProvider string, barMinutes int) *Logger {
 	return &Logger{
 		log: l.log.With().
-			Str("INST", instID).
-			Str("DP", dataProvider).
-			Int("BAR", barMinutes).
+			Str("ID", instID).       // 实例ID
+			Str("DP", dataProvider). // 数据源
+			Int("Bar", barMinutes).  // K线周期（分钟）
 			Logger(),
 	}
 }
 
-// PrintError prints an error log.
+// PrintError 打印错误日志。
 func (l *Logger) PrintError(err error) {
 	l.log.Error().Err(err).Send()
 }
@@ -51,50 +51,50 @@ func (l *Logger) PrintWAPStop() {
 	l.log.Info().Msg("量化策略已停止")
 }
 
-// PrintUpdatePriceFail logs a failure to update price series.
+// PrintUpdatePriceFail 记录更新价格序列失败。
 func (l *Logger) PrintUpdatePriceFail(err error) {
 	l.log.Error().Err(err).Msg("更新价格序列失败")
 }
 
-// PrintIndicatorLog demonstrates printing multiple fields: time, price, RSI, MA5, MA20.
+// PrintIndicatorLog 演示打印多个字段：时间、价格、RSI、MA5、MA20。
 func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma20 float64) {
 	l.log.Info().
-		Time("T", candleTime).
-		Float64("P", price).
-		Float64("RSI", curRSI).
-		Float64("MA5", ma5).
-		Float64("MA20", ma20).
+		Time("Time", candleTime). // 时间
+		Float64("Price", price).  // 价格
+		Float64("RSI", curRSI).   // RSI
+		Float64("MA5", ma5).      // MA5
+		Float64("MA20", ma20).    // MA20
 		Send()
 }
 
-// PrintErrorWithTime prints an error with a specific time included.
+// PrintErrorWithTime 打印包含特定时间的错误。
 func (l *Logger) PrintErrorWithTime(candleTime time.Time, err error) {
 	l.log.Error().
-		Time("T", candleTime).
+		Time("Time", candleTime). // 时间
 		Err(err).
 		Send()
 }
 
-// PrintBuyFail logs a buy failure.
+// PrintBuyFail 记录买入失败。
 func (l *Logger) PrintBuyFail(err error) {
 	l.log.Error().Err(err).Msg("买入失败")
 }
 
-// PrintBuySuccess logs a buy success and prints the order ID.
+// PrintBuySuccess 记录买入成功并打印订单ID。
 func (l *Logger) PrintBuySuccess(orderID string) {
 	l.log.Info().
-		Str("OID", orderID).
+		Str("OrderID", orderID). // 订单ID
 		Msg("买入成功")
 }
 
-// PrintSellFail logs a sell failure.
+// PrintSellFail 记录卖出失败。
 func (l *Logger) PrintSellFail(err error) {
 	l.log.Error().Err(err).Msg("卖出失败")
 }
 
-// PrintSellSuccess logs a sell success and prints the order ID.
+// PrintSellSuccess 记录卖出成功并打印订单ID。
 func (l *Logger) PrintSellSuccess(orderID string) {
 	l.log.Info().
-		Str("OID", orderID).
+		Str("OrderID", orderID). // 订单ID
 		Msg("卖出成功")
 }
