@@ -117,7 +117,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 	for {
 		select {
 		case <-r.stopChan:
-			r.log.PrintRSIWAPStop()
+			r.log.PrintWAPStop()
 			return
 		default:
 			candle, err := hook.Update()
