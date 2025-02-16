@@ -31,7 +31,7 @@ func init() {
 		NoColor:    false,
 	})
 
-	if constants.TGChatID != "" {
+	if bot.B != nil && constants.TGChatID != "" {
 		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
 		outSet = append(outSet, bot.NewTelegramWriter(bot.B, chatId))
 	}
