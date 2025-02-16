@@ -170,7 +170,7 @@ func handleExtraFields(b *bytes.Buffer, data map[string]interface{}) {
 		default:
 			vv = fmt.Sprintf("%v", v)
 		}
-		b.WriteString(fmt.Sprintf("%s: %s", k, colorize(vv, hashColor(vv))))
+		b.WriteString(fmt.Sprintf("%s: %s", k, colorize(vv, hashColor(k))))
 		divider(b)
 	}
 }
