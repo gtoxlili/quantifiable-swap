@@ -2,6 +2,7 @@ package logger
 
 import (
 	"github.com/gtoxlili/quantifiable-swap/bot"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/rs/zerolog"
 	"io"
@@ -25,11 +26,7 @@ func init() {
 	zerolog.FloatingPointPrecision = 2
 
 	var outSet []io.Writer
-	outSet = append(outSet, zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: "15:04:05",
-		NoColor:    false,
-	})
+	outSet = append(outSet, pretty.NewConsoleWriter(os.Stdout, "15:04:05"))
 
 	if bot.B != nil && constants.TGChatID != "" {
 		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
