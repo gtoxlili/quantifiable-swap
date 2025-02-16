@@ -199,7 +199,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
 						"自动交易",
 					)
-					r.log.PrintBuySuccess(orderID)
+					r.log.PrintBuySuccess(candle.Value, orderID)
 					r.lastBuyTrade.OrderTime = time.Now()
 					r.lastBuyTrade.Price = candle.Value
 					r.lastBuyTrade.RSI = curRSI
@@ -225,7 +225,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 						fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", candle.Value, curRSI, orderID),
 						"自动交易",
 					)
-					r.log.PrintSellSuccess(orderID)
+					r.log.PrintSellSuccess(candle.Value, orderID)
 					r.lastSellTrade.OrderTime = time.Now()
 					r.lastSellTrade.Price = candle.Value
 					r.lastSellTrade.RSI = curRSI

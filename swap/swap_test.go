@@ -123,8 +123,8 @@ type mockRSIHook struct {
 	currentIndex int
 }
 
-func (m *mockRSIHook) Indicator(name string) quantifiable.IndicatorMetrics[float64] {
-	return m
+func (m *mockRSIHook) Indicator(name string) (quantifiable.IndicatorMetrics[float64], error) {
+	return m, nil
 }
 
 func (m *mockRSIHook) Candles() []sequence.Candle[float64] {

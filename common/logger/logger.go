@@ -91,8 +91,9 @@ func (l *Logger) PrintBuyFail(err error) {
 }
 
 // PrintBuySuccess 记录买入成功并打印订单ID。
-func (l *Logger) PrintBuySuccess(orderID string) {
+func (l *Logger) PrintBuySuccess(price float64, orderID string) {
 	l.log.Info().
+		Float64("Price", price). // 价格
 		Str("OrderID", orderID). // 订单ID
 		Msg("买入成功")
 }
@@ -103,8 +104,9 @@ func (l *Logger) PrintSellFail(err error) {
 }
 
 // PrintSellSuccess 记录卖出成功并打印订单ID。
-func (l *Logger) PrintSellSuccess(orderID string) {
+func (l *Logger) PrintSellSuccess(price float64, orderID string) {
 	l.log.Info().
+		Float64("Price", price). // 价格
 		Str("OrderID", orderID). // 订单ID
 		Msg("卖出成功")
 }

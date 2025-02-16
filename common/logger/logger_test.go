@@ -35,11 +35,11 @@ func TestNewLogger(t *testing.T) {
 
 	// Test buy operations
 	logger.PrintBuyFail(testErr)
-	logger.PrintBuySuccess("order123")
+	logger.PrintBuySuccess(50000.0, "order123")
 
 	// Test sell operations
 	logger.PrintSellFail(testErr)
-	logger.PrintSellSuccess("order456")
+	logger.PrintSellSuccess(50000.0, "order123")
 
 	time.Sleep(5 * time.Minute)
 }

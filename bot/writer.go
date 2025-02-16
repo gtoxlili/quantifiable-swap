@@ -40,7 +40,7 @@ func (w *TelegramWriter) processEntries() {
 		}
 
 		msg := tgbotapi.NewMessage(w.chatID, msgText)
-		msg.ParseMode = tgbotapi.ModeMarkdown
+		msg.ParseMode = tgbotapi.ModeHTML
 		_, err = w.bot.Send(msg)
 		if err != nil {
 			// 处理发送错误，可以添加重试逻辑
@@ -57,85 +57,115 @@ func formatLogEntry(data []byte) (string, error) {
 
 	b := &bytes.Buffer{}
 
-	// 公共字段
+	// 基础信息块
 	id := fmt.Sprintf("%v", logData["ID"])
 	dp := fmt.Sprintf("%v", logData["DP"])
 	bar := fmt.Sprintf("%v", logData["Bar"])
 	timeVal := getTime(logData)
 
-	b.WriteString(fmt.Sprintf("🕒 *%s*\n", timeVal))
-	b.WriteString(fmt.Sprintf("🔗 交易对: `%s`\n", id))
-	b.WriteString(fmt.Sprintf("🏷 平台: %s | Bar: %sm\n", dp, bar))
+	// 标题部分
+	b.WriteString(fmt.Sprintf("📊 <b>%s/%s</b>\n\n", dp, id))
 
-	// 交易时间
+	// 时间信息块
+	b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
 	if t, ok := logData["Time"].(string); ok {
-		b.WriteString(fmt.Sprintf("🕒 采样时间: `%s`\n", t))
+		b.WriteString(fmt.Sprintf("📅 采样时间: <code>%s</code>\n", t))
 	}
+	b.WriteString(fmt.Sprintf("⌛ Bar: <code>%sm</code>\n\n", bar))
 
 	// 处理不同日志级别
 	switch logData["level"] {
 	case "error":
-		b.WriteString("❗️ *ERROR*\n")
-		if msg, ok := logData["message"].(string); ok {
-			b.WriteString(fmt.Sprintf("📝 _%s_\n", msg))
-		}
-		if errMsg, ok := logData["error"].(string); ok {
-			b.WriteString(fmt.Sprintf("🔥 ERROR: `%s`\n", errMsg))
-		}
-
+		handleError(b, logData)
 	case "info":
-		if msg, ok := logData["message"].(string); ok {
-			switch {
-			case strings.Contains(msg, "成功"):
-				handleSuccess(b, logData, msg)
-			case strings.Contains(msg, "停止"):
-				b.WriteString("🛑 策略状态:\n")
-				b.WriteString(fmt.Sprintf("▫️ %s\n", msg))
-			default:
-				b.WriteString(fmt.Sprintf("ℹ️ %s\n", msg))
-			}
-		}
-		handleMetrics(b, logData)
+		handleInfo(b, logData)
 	}
 
 	return b.String(), nil
 }
 
-func handleSuccess(b *bytes.Buffer, data map[string]interface{}, msg string) {
-	emoji := "✅"
-	if strings.Contains(msg, "卖出") {
-		emoji = "📤"
-	} else if strings.Contains(msg, "买入") {
-		emoji = "📥"
+func handleError(b *bytes.Buffer, data map[string]interface{}) {
+	b.WriteString("🚨 <b>ERROR ALERT</b>\n\n")
+
+	if msg, ok := data["message"].(string); ok {
+		b.WriteString(fmt.Sprintf("📌 信息: <i>%s</i>\n", msg))
+	}
+	if errMsg, ok := data["error"].(string); ok {
+		b.WriteString(fmt.Sprintf("💥 错误: <code>%s</code>\n", errMsg))
+	}
+	b.WriteString("\n")
+}
+
+func handleInfo(b *bytes.Buffer, data map[string]interface{}) {
+	if msg, ok := data["message"].(string); ok {
+		switch {
+		case strings.Contains(msg, "成功"):
+			handleSuccess(b, data, msg)
+		case strings.Contains(msg, "停止"):
+			b.WriteString("⛔ <b>策略状态</b>\n")
+			b.WriteString(fmt.Sprintf("📍 %s\n\n", msg))
+		default:
+			b.WriteString(fmt.Sprintf("ℹ️ %s\n\n", msg))
+		}
 	}
 
-	b.WriteString(fmt.Sprintf("%s %s\n", emoji, msg))
-	if orderID, ok := data["OrderID"].(string); ok {
-		b.WriteString(fmt.Sprintf("🔖 订单号: `%s`\n", orderID))
-	}
-	if price, ok := data["Price"].(float64); ok {
-		b.WriteString(fmt.Sprintf("💰 价格: `%.2f`\n", price))
+	// 如果有指标数据，添加空行后显示
+	if hasMetrics(data) {
+		handleMetrics(b, data)
 	}
 }
 
-func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
+func handleSuccess(b *bytes.Buffer, data map[string]interface{}, msg string) {
+	var title string
+	if strings.Contains(msg, "卖出") {
+		title = "📤 <b>卖出订单</b>"
+	} else if strings.Contains(msg, "买入") {
+		title = "📥 <b>买入订单</b>"
+	} else {
+		title = "✅ <b>交易成功</b>"
+	}
+
+	b.WriteString(title + "\n")
+	b.WriteString(fmt.Sprintf("📝 状态: %s\n", msg))
+
+	if orderID, ok := data["OrderID"].(string); ok {
+		b.WriteString(fmt.Sprintf("🎫 订单: <code>%s</code>\n", orderID))
+	}
 	if price, ok := data["Price"].(float64); ok {
-		b.WriteString(fmt.Sprintf("💰 价格: `%.2f`\n", price))
+		b.WriteString(fmt.Sprintf("💹 价格: <code>%.2f</code>\n", price))
 	}
-	if rsi, ok := data["RSI"].(float64); ok {
-		b.WriteString(fmt.Sprintf("📈 RSI: `%.2f` | ", rsi))
+	b.WriteString("\n")
+}
+
+func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
+	b.WriteString("📊 <b>技术指标</b>\n")
+
+	if price, ok := data["Price"].(float64); ok {
+		b.WriteString(fmt.Sprintf("💰 当前价格: <code>%.2f</code>\n", price))
 	}
+
+	// 合并展示移动平均线
 	if ma5, ok := data["MA5"].(float64); ok {
-		b.WriteString(fmt.Sprintf("MA5: `%.2f` | ", ma5))
+		if ma20, ok := data["MA20"].(float64); ok {
+			b.WriteString(fmt.Sprintf("📈 MA5/MA20: <code>%.2f</code> / <code>%.2f</code>\n", ma5, ma20))
+		}
 	}
-	if ma20, ok := data["MA20"].(float64); ok {
-		b.WriteString(fmt.Sprintf("MA20: `%.2f` | ", ma20))
+
+	if rsi, ok := data["RSI"].(float64); ok {
+		b.WriteString(fmt.Sprintf("🔋 RSI: <code>%.2f</code>\n", rsi))
 	}
-	// 删除最后一个分隔符
-	if b.Len() > 0 {
-		b.Truncate(b.Len() - 3)
-		b.WriteString("\n")
+	b.WriteString("\n")
+}
+
+// 检查是否存在指标数据
+func hasMetrics(data map[string]interface{}) bool {
+	keys := []string{"Price", "RSI", "MA5", "MA20"}
+	for _, key := range keys {
+		if _, ok := data[key].(float64); ok {
+			return true
+		}
 	}
+	return false
 }
 
 func getTime(data map[string]interface{}) string {
