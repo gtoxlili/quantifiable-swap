@@ -61,32 +61,32 @@ func handleError(logData map[string]interface{}) (title, message, groupName stri
 	err := fmt.Sprintf("%v", logData["error"])
 
 	if msg, ok := logData["message"]; ok {
-		return fmt.Sprintf("[%s] %s", id, msg), fmt.Sprintf("Error: %s", err), "自动交易"
+		return fmt.Sprintf("❌ [%s] %s", id, msg), fmt.Sprintf("Error: %s", err), "自动交易"
 	}
 
-	return fmt.Sprintf("[%s] %s", id, err), "", "自动交易"
+	return fmt.Sprintf("❌ [%s] %s", id, err), "", "自动交易"
 }
 
 func handleWarn(logData map[string]interface{}) (title, message, groupName string) {
 	id := fmt.Sprintf("%v", logData["ID"])
 
 	if msg, ok := logData["message"]; ok {
-		return fmt.Sprintf("[%s] %s", id, msg), fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", logData["Price"], logData["RSI"], logData["OrderID"]), "自动交易"
+		return fmt.Sprintf("🚀 [%s] %s", id, msg), fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", logData["Price"], logData["RSI"], logData["OrderID"]), "自动交易"
 	}
 
 	abnormal := logData["异常"].(string)
 	if abnormal == "RSI" {
-		return fmt.Sprintf("[%s] RSI提醒", id),
+		return fmt.Sprintf("⚠️ [%s] RSI提醒", id),
 			fmt.Sprintf("[%s][%s] Price: %.2f, RSI: %.2f",
 				logData["DP"],
-				fmt.Sprintf("%dm", logData["Bar"]),
+				fmt.Sprintf("%dm", int(logData["Bar"].(float64))),
 				logData["Price"], logData["RSI"]),
 			"指标监控"
 	} else if abnormal == "金叉" || abnormal == "死叉" {
-		return fmt.Sprintf("[%s] 均线交叉提醒", id),
-			fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
+		return fmt.Sprintf("⚠️ [%s] 均线交叉提醒", id),
+			fmt.Sprintf("[%s][%s][%s] Price: %.2f, MA5: %.2f, MA20: %.2f",
 				logData["DP"],
-				fmt.Sprintf("%dm", logData["Bar"]), abnormal,
+				fmt.Sprintf("%dm", int(logData["Bar"].(float64))), abnormal,
 				logData["Price"], logData["MA5"], logData["MA20"],
 			),
 			"指标监控"
