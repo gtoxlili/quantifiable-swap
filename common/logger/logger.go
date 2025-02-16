@@ -94,7 +94,7 @@ func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma2
 				price, curRSI),
 			"指标监控",
 		)
-	} else {
+	} else if alert == "金叉" || alert == "死叉" {
 		common.Notify(
 			"⚠️ ["+l.instID+"] 均线交叉提醒",
 			fmt.Sprintf("[%s][%s]%s Price: %.2f, MA5: %.2f, MA20: %.2f",
