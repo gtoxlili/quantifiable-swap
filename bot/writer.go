@@ -65,7 +65,7 @@ func formatLogEntry(data []byte) (string, error) {
 
 	b.WriteString(fmt.Sprintf("🕒 *%s*\n", timeVal))
 	b.WriteString(fmt.Sprintf("🔗 交易对: `%s`\n", id))
-	b.WriteString(fmt.Sprintf("🏷 平台: %s | Bar: %s\n", dp, bar))
+	b.WriteString(fmt.Sprintf("🏷 平台: %s | Bar: %sm\n", dp, bar))
 
 	// 交易时间
 	if t, ok := logData["Time"].(string); ok {
@@ -119,6 +119,9 @@ func handleSuccess(b *bytes.Buffer, data map[string]interface{}, msg string) {
 }
 
 func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
+	if price, ok := data["Price"].(float64); ok {
+		b.WriteString(fmt.Sprintf("💰 价格: `%.2f`\n", price))
+	}
 	if rsi, ok := data["RSI"].(float64); ok {
 		b.WriteString(fmt.Sprintf("📈 RSI: `%.2f` | ", rsi))
 	}
