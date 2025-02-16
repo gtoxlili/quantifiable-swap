@@ -63,7 +63,7 @@ func (w *TelegramWriter) alertPin(remote tgApi.Message) {
 	}
 	_, err := w.bot.Request(pinMsg)
 	if err != nil {
-		fmt.Printf("置顶Bot消息失败: %v\n", err)
+		fmt.Printf("置顶 Bot 消息失败: %v\n", err)
 	}
 }
 

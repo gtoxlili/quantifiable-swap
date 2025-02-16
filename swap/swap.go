@@ -136,18 +136,18 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			lstMA5 := ma5Hook.PreviousVals()
 			lstMA20 := ma20Hook.PreviousVals()
 
-			alert := ""
+			abnormal := ""
 			// 交叉提醒
 			if candle.Time.Truncate(r.bar).Equal(candle.Time) {
 				if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
-					alert = text
+					abnormal = text
 				}
 			}
 			// 通用 RSI 提醒
 			if curRSI < 30 || curRSI > 70 {
-				alert = "RSI"
+				abnormal = "RSI"
 			}
-			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, alert)
+			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, abnormal)
 
 			// 如果自动交易未开启，直接继续循环
 			if !r.autoTrade {
