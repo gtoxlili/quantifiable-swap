@@ -99,7 +99,7 @@ func formatLogEntry(logData map[string]interface{}) string {
 }
 
 func handleError(b *bytes.Buffer, data map[string]interface{}) {
-	b.WriteString("🚨 <b>ERROR ALERT</b>\n\n")
+	b.WriteString("🚨 <b>错误警报</b>\n\n")
 
 	if msg, ok := data["message"].(string); ok {
 		b.WriteString(fmt.Sprintf("📌 信息: <i>%s</i>\n", msg))
@@ -156,6 +156,11 @@ func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
 
 	if price, ok := data["Price"].(float64); ok {
 		b.WriteString(fmt.Sprintf("💰 当前价格: <code>%.2f</code>\n", price))
+	}
+	// 是否存在异常状态
+	if abnormal, ok := data["异常"].(string); ok {
+		// 可能是 RSI异常 或者 均线交叉异常
+		b.WriteString(fmt.Sprintf("📢 指标信号: <code>%s</code>\n", abnormal))
 	}
 
 	// 合并展示移动平均线
