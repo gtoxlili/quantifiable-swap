@@ -154,15 +154,17 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				continue
 			}
 
-			if err := r.canBuy(TradeCondition{
+			condition := TradeCondition{
 				rsiQueue: rsiHook.PreviousVals(),
 				curRSI:   curRSI,
-				lst:      r.lastBuyTrade,
+				lst:      nil,
 				bar:      r.bar,
 				price:    candle.Value,
 				ma5:      ma5,
 				ma20:     ma20,
-			}); err != nil {
+			}
+
+			if err := r.canBuy(condition.Lst(r.lastBuyTrade)); err != nil {
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
 					r.log.PrintErrorWithTime(candle.Time, err)
 				}
@@ -178,15 +180,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 				}
 			}
 
-			if err := r.canSell(TradeCondition{
-				rsiQueue: rsiHook.PreviousVals(),
-				curRSI:   curRSI,
-				lst:      r.lastSellTrade,
-				bar:      r.bar,
-				price:    candle.Value,
-				ma5:      ma5,
-				ma20:     ma20,
-			}); err != nil {
+			if err := r.canSell(condition.Lst(r.lastSellTrade)); err != nil {
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
 					r.log.PrintErrorWithTime(candle.Time, err)
 				}
@@ -203,6 +197,11 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 			}
 		}
 	}
+}
+
+func (r TradeCondition) Lst(lst *LastTrade) TradeCondition {
+	r.lst = lst
+	return r
 }
 
 // 美化打印交易对
