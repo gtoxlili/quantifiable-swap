@@ -18,3 +18,27 @@ type Provider interface {
 	encodeInstId(base, quote string) string
 	InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider
 }
+
+// 一个用于存储所有实现了 Provider 接口的实例的 map
+var providers = loadProviderImplementations()
+
+func loadProviderImplementations() map[string]Provider {
+	discovered := make(map[string]Provider)
+
+	okx := NewOkx()
+	bybit := NewByBit()
+	binance := NewBinance()
+	bitget := NewBitGet()
+
+	discovered[okx.Name()] = okx
+	discovered[bybit.Name()] = bybit
+	discovered[binance.Name()] = binance
+	discovered[bitget.Name()] = bitget
+
+	return discovered
+}
+
+// 根据名称返回对应的 Provider
+func NewProvider(name string) Provider {
+	return providers[name]
+}

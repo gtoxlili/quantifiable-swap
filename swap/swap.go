@@ -79,7 +79,7 @@ func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, s
 			Price:     float64(intsets.MinInt),
 		},
 	}
-	ind.log = logger.NewLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
+	ind.log = logger.NewSwapLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
 	return ind
 }
 

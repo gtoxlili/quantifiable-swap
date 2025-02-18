@@ -50,6 +50,7 @@ func (w *BotWriter) processEntries() {
 		if err != nil {
 			// 处理发送错误，可以添加重试逻辑
 			fmt.Printf("发送 Bot 消息失败: %v\n", err)
+			continue
 		}
 		if logData["level"] == "warn" || logData["level"] == "error" {
 			w.alertPin(remote)
