@@ -11,16 +11,24 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/swap"
 )
 
+type IManager interface {
+	AddJob(j config.Job) (string, error)
+	RemoveJob(id string) error
+	RemoveAll()
+	RunJob(id string) error
+	JobNames() []string
+}
+
 // Manager 用于管理 Job 的添加、删除和执行
 type Manager struct {
 	mu   sync.Mutex
-	jobs map[string]lo.Either[swap.IndicatorJob, config.Job]
+	jobs map[string]lo.Either[swap.IIndicatorWaper, config.Job]
 }
 
 // NewManager 创建一个新的 Manager
-func NewManager() *Manager {
+func NewManager() IManager {
 	return &Manager{
-		jobs: make(map[string]lo.Either[swap.IndicatorJob, config.Job]),
+		jobs: make(map[string]lo.Either[swap.IIndicatorWaper, config.Job]),
 	}
 }
 

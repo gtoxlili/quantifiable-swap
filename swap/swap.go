@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-// IndicatorJob 接口
-type IndicatorJob interface {
+// IIndicatorWaper 接口
+type IIndicatorWaper interface {
 	Run()
 	Stop()
 	RunWithCustomPeriod(period int)
@@ -52,16 +52,16 @@ type IndicatorWaper struct {
 }
 
 // NewNotify 不进行自动下单的 Waper （只提醒）
-func NewNotify(base, quote string, bar time.Duration, dataProvider provider.Provider) IndicatorJob {
+func NewNotify(base, quote string, bar time.Duration, dataProvider provider.Provider) IIndicatorWaper {
 	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
 }
 
 // NewWaper creates a new Waper instance
-func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider provider.Provider) IndicatorJob {
+func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider provider.Provider) IIndicatorWaper {
 	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) IndicatorJob {
+func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) IIndicatorWaper {
 	ind := &IndicatorWaper{
 		base:         base,
 		quote:        quote,
