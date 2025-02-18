@@ -36,8 +36,8 @@ type IndicatorWaper struct {
 	quote string
 
 	bar        time.Duration
-	sellAmount string
-	buyAmount  string
+	sellAmount float64
+	buyAmount  float64
 	autoTrade  bool
 
 	// 判断是否自动下单的函数
@@ -53,15 +53,15 @@ type IndicatorWaper struct {
 
 // NewNotify 不进行自动下单的 Waper （只提醒）
 func NewNotify(base, quote string, bar time.Duration, dataProvider provider.Provider) IndicatorJob {
-	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, "", "", false, nil, nil, dataProvider)
+	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
 }
 
 // NewWaper creates a new Waper instance
-func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount string, dataProvider provider.Provider) IndicatorJob {
+func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider provider.Provider) IndicatorJob {
 	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount string, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) IndicatorJob {
+func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) IndicatorJob {
 	ind := &IndicatorWaper{
 		base:         base,
 		quote:        quote,

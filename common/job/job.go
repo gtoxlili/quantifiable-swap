@@ -24,13 +24,17 @@ func NewManager() *Manager {
 }
 
 // AddJob 添加一个新的 Job
-func (m *Manager) AddJob(j config.Job) (id string, err error) {
+func (m *Manager) AddJob(j config.Job) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if err := j.Validate("Id", "InjectOrder", "Sell", "Buy"); err != nil {
+		return "", err
+	}
+
 	// id 不可重复
-	if _, found := m.jobs[j.Id]; found {
-		return "", fmt.Errorf("job %s 已存在", j.Id)
+	if _, found := m.jobs[j.GetId()]; found {
+		return "", fmt.Errorf("job %s 已存在", j.GetId())
 	}
 
 	prov := provider.NewProvider(j.Provider.Name)
@@ -46,14 +50,14 @@ func (m *Manager) AddJob(j config.Job) (id string, err error) {
 
 	switch j.Type {
 	case "notify":
-		m.jobs[j.Id] = swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov)
+		m.jobs[j.GetId()] = swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov)
 	case "swap":
-		m.jobs[j.Id] = swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
+		m.jobs[j.GetId()] = swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
 	default:
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}
 
-	return j.Id, nil
+	return j.GetId(), nil
 }
 
 // RemoveJob 根据 id 删除 Job

@@ -17,7 +17,7 @@ type BinanceProvider struct {
 
 	limiter limiter.RateLimiter
 	// 下单方法
-	orderFunc func(base, quote, side, size string) (string, error)
+	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
 func NewBinance() Provider {
@@ -35,7 +35,7 @@ func NewBinance() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (b BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	b.orderFunc = orderFunc
 	return &b
 }
@@ -118,7 +118,7 @@ func (b *BinanceProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	}, nil
 }
 
-func (b *BinanceProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
+func (b *BinanceProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc == nil {
 		panic("implement me")
 	}

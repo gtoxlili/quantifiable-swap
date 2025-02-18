@@ -25,7 +25,7 @@ type OkxProvider struct {
 	limiter limiter.RateLimiter
 
 	// 下单方法
-	orderFunc func(base, quote, side, size string) (string, error)
+	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
 func NewOkx() Provider {
@@ -43,7 +43,7 @@ func NewOkx() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (o OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (o OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	o.orderFunc = orderFunc
 	return &o
 }
@@ -141,7 +141,7 @@ type OkxOrderRequest struct {
 	TgtCcy  string `json:"tgtCcy,omitempty"` // 目标币种，市价买单时指基础币种（默认单位为 base_ccy）
 }
 
-func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) {
+func (o *OkxProvider) MarketOrder(base, quote, side string, sz float64) (string, error) {
 
 	if o.orderFunc != nil {
 		return o.orderFunc(base, quote, side, sz)
@@ -153,7 +153,7 @@ func (o *OkxProvider) MarketOrder(base, quote, side, sz string) (string, error) 
 		TdMode:  "cash",
 		Side:    strings.ToLower(side),
 		OrdType: "market",
-		Sz:      sz,
+		Sz:      fmt.Sprintf("%f", sz),
 		TgtCcy:  "quote_ccy",
 	}
 

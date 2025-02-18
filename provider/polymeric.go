@@ -11,7 +11,7 @@ type PolymericProvider struct {
 	strategyFunc func([]*TpRes) *TpRes
 
 	// 下单方法
-	orderFunc func(base, quote, side, size string) (string, error)
+	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
 func NewPolymericProvider(members ...Provider) Provider {
@@ -28,7 +28,7 @@ func NewPolymericProviderWithStrategy(strategy func([]*TpRes) *TpRes, members ..
 	}
 }
 
-func (p PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (p PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	p.orderFunc = orderFunc
 	return &p
 }
@@ -96,7 +96,7 @@ func (p *PolymericProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	return p.strategyFunc(finalRes), nil
 }
 
-func (p *PolymericProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
+func (p *PolymericProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
 	if p.orderFunc == nil {
 		panic("implement me")
 	}

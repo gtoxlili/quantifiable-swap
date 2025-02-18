@@ -16,7 +16,7 @@ func main() {
 	log.Info().Msg("应用程序启动中...")
 	jobs, err := config.ParseConfig("./config.yaml")
 	if err != nil {
-		log.Fatal().
+		log.Panic().
 			Err(err).
 			Msg("配置文件解析失败")
 	}

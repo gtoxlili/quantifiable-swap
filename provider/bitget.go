@@ -17,7 +17,7 @@ type BitGetProvider struct {
 	limiter limiter.RateLimiter
 
 	// 下单方法
-	orderFunc func(base, quote, side, size string) (string, error)
+	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
 func NewBitGet() Provider {
@@ -32,7 +32,7 @@ func NewBitGet() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (b BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	b.orderFunc = orderFunc
 	return &b
 }
@@ -124,7 +124,7 @@ func (b *BitGetProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	}, nil
 }
 
-func (b *BitGetProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
+func (b *BitGetProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc == nil {
 		panic("implement me")
 	}

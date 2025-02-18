@@ -25,7 +25,7 @@ type ByBitProvider struct {
 	limiter limiter.RateLimiter
 
 	// 下单方法
-	orderFunc func(base, quote, side, size string) (string, error)
+	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
 func NewByBit() Provider {
@@ -42,7 +42,7 @@ func NewByBit() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (b ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	b.orderFunc = orderFunc
 	return &b
 }
@@ -143,7 +143,7 @@ type ByBitOrderRequest struct {
 	MarketUnit  string `json:"marketUnit"`
 }
 
-func (b *ByBitProvider) MarketOrder(base, quote string, side string, size string) (string, error) {
+func (b *ByBitProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc != nil {
 		return b.orderFunc(base, quote, side, size)
 	}
@@ -153,7 +153,7 @@ func (b *ByBitProvider) MarketOrder(base, quote string, side string, size string
 		Symbol:      b.encodeInstId(base, quote),
 		Side:        strings.Title(side),
 		OrderType:   "Market",
-		Qty:         size,
+		Qty:         fmt.Sprintf("%f", size),
 		TimeInForce: "IOC",
 		MarketUnit:  "quoteCoin",
 	}
