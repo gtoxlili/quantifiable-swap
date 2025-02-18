@@ -30,7 +30,7 @@ func main() {
 			log.Error().
 				Err(err).
 				Bytes("任务配置", jobConfig).
-				Msg("任务执行失败")
+				Msg("任务启动失败")
 			continue
 		}
 		_ = manager.RunJob(id)

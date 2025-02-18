@@ -38,8 +38,14 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 	}
 
 	prov := provider.NewProvider(j.Provider.Name)
+	if prov == nil {
+		return "", fmt.Errorf("未知的 Provider: %s", j.Provider.Name)
+	}
 	if j.Provider.InjectOrder != "" {
 		injectProv := provider.NewProvider(j.Provider.InjectOrder)
+		if injectProv == nil {
+			return "", fmt.Errorf("未知的 InjectOrder Provider: %s", j.Provider.InjectOrder)
+		}
 		prov = prov.InjectOrderFunc(injectProv.MarketOrder)
 	}
 
@@ -87,4 +93,15 @@ func (m *Manager) RunJob(id string) error {
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
+}
+
+// JobNames 获取所有 Job Name
+func (m *Manager) JobNames() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var names []string
+	for id, _ := range m.jobs {
+		names = append(names, id)
+	}
+	return names
 }

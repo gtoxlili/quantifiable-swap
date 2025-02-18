@@ -37,10 +37,6 @@ func (w *BotWriter) Write(p []byte) (n int, err error) {
 
 func (w *BotWriter) processEntries() {
 	for logData := range w.entries {
-		// 只打印交易日志
-		if typ, ok := logData["type"].(string); !ok || typ != "swap" {
-			continue
-		}
 		msgText := formatLogEntry(logData)
 
 		msg := tgApi.NewMessage(w.chatID, msgText)
@@ -75,21 +71,29 @@ func formatLogEntry(logData pretty.LogData) string {
 
 	b := &bytes.Buffer{}
 
-	// 基础信息块
-	id := fmt.Sprintf("%v", logData["ID"])
-	dp := fmt.Sprintf("%v", logData["DP"])
-	bar := fmt.Sprintf("%v", logData["Bar"])
+	typ := logData["type"].(string)
+
 	timeVal := getTime(logData)
+	if typ == "swap" {
+		// 基础信息块
+		id := fmt.Sprintf("%v", logData["ID"])
+		dp := fmt.Sprintf("%v", logData["DP"])
+		bar := fmt.Sprintf("%v", logData["Bar"])
 
-	// 标题部分
-	b.WriteString(fmt.Sprintf("📊 <b>%s/%s</b>\n\n", dp, id))
+		// 标题部分
+		b.WriteString(fmt.Sprintf("📊 <b>%s/%s</b>\n\n", dp, id))
 
-	// 时间信息块
-	b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
-	if t, ok := logData["Time"].(string); ok {
-		b.WriteString(fmt.Sprintf("📅 采样时间: <code>%s</code>\n", t))
+		// 时间信息块
+		b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
+		if t, ok := logData["Time"].(string); ok {
+			b.WriteString(fmt.Sprintf("📅 采样时间: <code>%s</code>\n", t))
+		}
+		b.WriteString(fmt.Sprintf("⌛ Bar: <code>%sm</code>\n\n", bar))
+	} else {
+		b.WriteString("⚙️ <b>General</b>\n\n")
+		b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
+		b.WriteString(fmt.Sprintf("📌 日志级别: <code>%s</code>\n\n", strings.Title(logData["level"].(string))))
 	}
-	b.WriteString(fmt.Sprintf("⌛ Bar: <code>%sm</code>\n\n", bar))
 
 	// 处理不同日志级别
 	switch logData["level"] {
@@ -99,11 +103,16 @@ func formatLogEntry(logData pretty.LogData) string {
 		handleInfo(b, logData)
 	}
 
+	// 打印额外字段
+	if typ != "swap" {
+		handleExtraFields(b, logData)
+	}
+
 	return b.String()
 }
 
 func handleError(b *bytes.Buffer, data pretty.LogData) {
-	b.WriteString("🚨 <b>错误警报</b>\n\n")
+	b.WriteString("🚨 <b>错误警报</b>\n")
 
 	if msg, ok := data["message"].(string); ok {
 		b.WriteString(fmt.Sprintf("📌 信息: <i>%s</i>\n", msg))
@@ -140,7 +149,7 @@ func handleSuccess(b *bytes.Buffer, data pretty.LogData, msg string) {
 	} else if strings.Contains(msg, "买入") {
 		title = "📥 <b>买入订单</b>"
 	} else {
-		title = "✅ <b>交易成功</b>"
+		title = "✅ <b>执行成功</b>"
 	}
 
 	b.WriteString(title + "\n")
@@ -196,4 +205,14 @@ func getTime(data pretty.LogData) string {
 		return t
 	}
 	return "N/A"
+}
+
+// 打印额外字段
+func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
+	for k, v := range data {
+		if k == "level" || k == "time" || k == "type" || k == "message" || k == "error" {
+			continue
+		}
+		b.WriteString(fmt.Sprintf("💭 %s: <code>%v</code>\n", k, v))
+	}
 }

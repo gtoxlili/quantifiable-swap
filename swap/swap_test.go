@@ -188,7 +188,7 @@ func TestRSIWaper_runRSILoop_BuySell(t *testing.T) {
 	}
 
 	okxProvider := provider.NewOkx()
-	r := NewWaper("BTC", "USDT", time.Minute, "10", "10", okxProvider)
+	r := NewWaper("BTC", "USDT", time.Minute, 10, 10, okxProvider)
 
 	go func() {
 		time.Sleep(2 * time.Second)
