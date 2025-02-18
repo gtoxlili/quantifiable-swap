@@ -43,7 +43,12 @@ func main() {
 	signChan := make(chan os.Signal, 1)
 	signal.Notify(signChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	sig := <-signChan
-	// 关闭所有任务
+	// 保存任务到配置文件
+	if err := config.SaveConfig("./config.yaml", manager.JobsData()); err != nil {
+		log.Error().
+			Err(err).
+			Msg("保存配置文件失败")
+	}
 	manager.RemoveAll()
 	log.Info().
 		Str("Sign", sig.String()).

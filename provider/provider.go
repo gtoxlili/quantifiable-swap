@@ -39,5 +39,5 @@ func init() {
 
 // NewProvider 根据名称返回对应的 Provider
 func NewProvider(name string) Provider {
-	return providers[name]
+	return providers[strings.ToLower(name)]
 }

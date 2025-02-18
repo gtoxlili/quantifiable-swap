@@ -3,6 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"sync"
 	"time"
 
@@ -13,13 +14,13 @@ import (
 // Manager 用于管理 Job 的添加、删除和执行
 type Manager struct {
 	mu   sync.Mutex
-	jobs map[string]swap.IndicatorJob
+	jobs map[string]lo.Either[swap.IndicatorJob, config.Job]
 }
 
 // NewManager 创建一个新的 Manager
 func NewManager() *Manager {
 	return &Manager{
-		jobs: make(map[string]swap.IndicatorJob),
+		jobs: make(map[string]lo.Either[swap.IndicatorJob, config.Job]),
 	}
 }
 
@@ -56,9 +57,9 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 
 	switch j.Type {
 	case "notify":
-		m.jobs[j.GetId()] = swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov)
+		m.jobs[j.GetId()] = lo.NewEither(swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov), j)
 	case "swap":
-		m.jobs[j.GetId()] = swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
+		m.jobs[j.GetId()] = lo.NewEither(swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov), j)
 	default:
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}
@@ -71,7 +72,7 @@ func (m *Manager) RemoveJob(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if job, found := m.jobs[id]; found {
-		job.Stop()
+		job.Left().Stop()
 		delete(m.jobs, id)
 	}
 	return fmt.Errorf("job %s 不存在", id)
@@ -89,7 +90,7 @@ func (m *Manager) RunJob(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if job, found := m.jobs[id]; found {
-		go job.Run()
+		go job.Left().Run()
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
@@ -104,4 +105,15 @@ func (m *Manager) JobNames() []string {
 		names = append(names, id)
 	}
 	return names
+}
+
+// JobsData 获取 []Job
+func (m *Manager) JobsData() []config.Job {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var jobs []config.Job
+	for _, v := range m.jobs {
+		jobs = append(jobs, v.Right())
+	}
+	return jobs
 }
