@@ -28,9 +28,9 @@ func NewPolymericProviderWithStrategy(strategy func([]*TpRes) *TpRes, members ..
 	}
 }
 
-func (p *PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (p PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
 	p.orderFunc = orderFunc
-	return p
+	return &p
 }
 
 func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {

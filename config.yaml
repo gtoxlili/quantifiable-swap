@@ -1,0 +1,71 @@
+# Configuration for multiple trading and notification jobs
+- id: okx_swap_ethusdt_15m
+  type: swap
+  symbol:
+    base: eth
+    quote: usdt
+  bar: 15m
+  amount:
+    sell: "150"
+    buy: "300"
+  provider:
+    name: okx
+
+- id: binance_swap_ethusdt_1h
+  type: swap
+  symbol:
+    base: eth
+    quote: usdt
+  bar: 1h
+  amount:
+    sell: "200"
+    buy: "400"
+  provider:
+    name: binance
+    inject_order: okx
+
+- id: binance_swap_ethusdt_4h
+  type: swap
+  symbol:
+    base: eth
+    quote: usdt
+  bar: 4h
+  amount:
+    sell: "300"
+    buy: "600"
+  provider:
+    name: binance
+    inject_order: okx
+
+- id: bybit_swap_aerousdt_1h
+  type: swap
+  symbol:
+    base: aero
+    quote: usdt
+  bar: 1h
+  amount:
+    sell: "100"
+    buy: "200"
+  provider:
+    name: bybit
+
+- id: binance_notify_btcusdt_15m
+  type: notify
+  symbol:
+    base: btc
+    quote: usdt
+  bar: 15m
+  provider:
+    name: binance
+
+- id: bybit_swap_aerousdt_15m
+  type: swap
+  symbol:
+    base: aero
+    quote: usdt
+  bar: 15m
+  amount:
+    sell: "100"
+    buy: "100"
+  provider:
+    name: bybit

@@ -35,9 +35,9 @@ func NewBinance() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b *BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (b BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
 	b.orderFunc = orderFunc
-	return b
+	return &b
 }
 
 func (b *BinanceProvider) Name() string {

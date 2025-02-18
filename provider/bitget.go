@@ -32,9 +32,9 @@ func NewBitGet() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b *BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (b BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
 	b.orderFunc = orderFunc
-	return b
+	return &b
 }
 
 func (b *BitGetProvider) Name() string {

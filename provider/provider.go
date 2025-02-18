@@ -1,5 +1,7 @@
 package provider
 
+import "strings"
+
 type TpRes struct {
 	Timestamp string
 	Price     string
@@ -19,26 +21,23 @@ type Provider interface {
 	InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider
 }
 
-// 一个用于存储所有实现了 Provider 接口的实例的 map
-var providers = loadProviderImplementations()
+// providers 存储所有注册的 Provider 实例
+var providers = make(map[string]Provider)
 
-func loadProviderImplementations() map[string]Provider {
-	discovered := make(map[string]Provider)
-
-	okx := NewOkx()
-	bybit := NewByBit()
-	binance := NewBinance()
-	bitget := NewBitGet()
-
-	discovered[okx.Name()] = okx
-	discovered[bybit.Name()] = bybit
-	discovered[binance.Name()] = binance
-	discovered[bitget.Name()] = bitget
-
-	return discovered
+// RegisterProvider 注册一个 Provider 实例
+func registerProvider(p Provider) {
+	providers[strings.ToLower(p.Name())] = p
 }
 
-// 根据名称返回对应的 Provider
+// init 在包初始化时注册所有内置的 Provider
+func init() {
+	registerProvider(NewOkx())
+	registerProvider(NewByBit())
+	registerProvider(NewBinance())
+	registerProvider(NewBitGet())
+}
+
+// NewProvider 根据名称返回对应的 Provider
 func NewProvider(name string) Provider {
 	return providers[name]
 }

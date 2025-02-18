@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
 	"io"
+	"strings"
 )
 
 type ConsoleWriter struct {
@@ -43,7 +44,6 @@ func formatLogEntry(logData pretty.LogData) []byte {
 	b := &bytes.Buffer{}
 
 	typ := logData["type"]
-	// General log
 	if typ == "swap" {
 		handlePrefix(b, logData)
 		divider(b)
@@ -92,7 +92,7 @@ func formatSegment(text, color string) string {
 
 func handleGeneralPrefix(b *bytes.Buffer, data pretty.LogData) {
 	if level, ok := data["level"].(string); ok {
-		b.WriteString(formatSegment(level, hashColor(level)))
+		b.WriteString(formatSegment(strings.ToUpper(level), hashColor(level)))
 		delete(data, "level")
 	}
 	if t, ok := data["time"].(string); ok {
@@ -170,7 +170,7 @@ func hashColor(s string) string {
 // 打印多余的字段
 func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 	for k, v := range data {
-		if k == "level" || k == "time" {
+		if k == "level" || k == "time" || k == "type" {
 			continue
 		}
 		var vv string

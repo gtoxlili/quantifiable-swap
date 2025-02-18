@@ -43,9 +43,9 @@ func NewOkx() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (o *OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
+func (o OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side, size string) (string, error)) Provider {
 	o.orderFunc = orderFunc
-	return o
+	return &o
 }
 
 func (o *OkxProvider) MaxHistoryLimit() int {

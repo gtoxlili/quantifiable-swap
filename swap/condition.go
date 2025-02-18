@@ -15,6 +15,11 @@ type TradeCondition struct {
 	ma20     float64       // 20 周期均线
 }
 
+func (r TradeCondition) Lst(lst *LastTrade) TradeCondition {
+	r.lst = lst
+	return r
+}
+
 // canSell determines if the RSI suggests a sell signal
 func defaultCanSell(tc TradeCondition) error {
 	rsiQueue := tc.rsiQueue
