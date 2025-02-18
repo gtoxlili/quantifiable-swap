@@ -33,11 +33,17 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken={{.TG_BOT_TOKEN}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.TGChatID={{.TG_CHAT_ID}}' \
         -w -s -buildid="
+  # 上传程序至远程服务器
+  deploy-binary:
+    cmds:
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}}"
+      - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}:{{.REMOTE_DIR}}
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_DIR}}{{.BINARY_NAME}};{{.REMOTE_PM2_PATH}} save"
+  # 上传配置文件至远程服务器
+  deploy-config:
+    cmds:
+      - scp -r ./config.yaml {{.REMOTE_ADDRESS}}:{{.REMOTE_DIR}}
   linux-amd64:
-    vars:
-      REMOTE_PM2_PATH:
-      REMOTE_ADDRESS:
-      REMOTE_PATH:
     cmds:
       - task: build
         vars: {
@@ -46,9 +52,6 @@ tasks:
           GOARCH: amd64,
           PROXY_ADDR:
         }
-      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}}"
-      - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}:{{.REMOTE_PATH}}
-      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_PATH}}{{.BINARY_NAME}};{{.REMOTE_PM2_PATH}} save"
   darwin-amd64:
     cmds:
       - task: build
@@ -58,11 +61,18 @@ tasks:
           GOARCH: amd64,
         }
   default:
+    vars:
+      REMOTE_ADDRESS:
+      REMOTE_DIR:
     cmds:
       - task: clean
       - task: linux-amd64
+      - task: deploy-config
+      - task: deploy-binary
+        vars: {
+          REMOTE_PM2_PATH:
+        }
   dev:
     cmds:
       - task: clean
       - task: darwin-amd64
-

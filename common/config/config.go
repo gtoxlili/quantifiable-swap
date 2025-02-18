@@ -39,6 +39,9 @@ func (j *Job) Validate(skip ...string) error {
 func ParseConfig(path string) ([]Job, error) {
 	file, err := os.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	defer file.Close()
