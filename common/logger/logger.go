@@ -15,10 +15,7 @@ import (
 
 // Logger 是一个使用 zerolog 封装日志记录逻辑的 logger。
 type Logger struct {
-	instID string
-	dp     string
-	bar    int
-	log    zerolog.Logger
+	log zerolog.Logger
 }
 
 var (
@@ -35,11 +32,11 @@ func init() {
 
 	if bot.Bot != nil && constants.TGChatID != "" {
 		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
-		outSet = append(outSet, tglog.NewTelegramWriter(bot.Bot, chatId))
+		outSet = append(outSet, tglog.NewBotWriter(bot.Bot, chatId))
 	}
 
 	if constants.BarkToken != "" {
-		outSet = append(outSet, bark.NewBarkWriter(constants.BarkToken))
+		outSet = append(outSet, bark.NewNotifyWriter(constants.BarkToken))
 	}
 
 	l = &Logger{
@@ -47,16 +44,23 @@ func init() {
 	}
 }
 
-// NewLogger 创建一个新的 Logger 单例实例。
-func NewLogger(instID, dataProvider string, barMinutes int) *Logger {
+// NewSwapLogger 创建一个新的 Logger 单例实例。
+func NewSwapLogger(instID, dataProvider string, barMinutes int) *Logger {
 	return &Logger{
-		instID: instID,
-		dp:     dataProvider,
-		bar:    barMinutes,
 		log: l.log.With().
+			Str("type", "swap").     // 日志类型
 			Str("ID", instID).       // 实例ID
 			Str("DP", dataProvider). // 数据源
 			Int("Bar", barMinutes).  // K线周期（分钟）
+			Logger(),
+	}
+}
+
+// NewGeneralLogger 打印代码逻辑中的日志
+func NewGeneralLogger() *Logger {
+	return &Logger{
+		log: l.log.With().
+			Str("type", "general"). // 日志类型
 			Logger(),
 	}
 }

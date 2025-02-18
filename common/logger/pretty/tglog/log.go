@@ -5,37 +5,40 @@ import (
 	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"io"
 	"strings"
 )
 
-type TelegramWriter struct {
+type BotWriter struct {
 	bot     *tgApi.BotAPI
 	chatID  int64
-	entries chan []byte
+	entries chan pretty.LogData
 }
 
-func NewTelegramWriter(bot *tgApi.BotAPI, chatID int64) *TelegramWriter {
-	tw := &TelegramWriter{
+func NewBotWriter(bot *tgApi.BotAPI, chatID int64) io.Writer {
+	tw := &BotWriter{
 		bot:     bot,
 		chatID:  chatID,
-		entries: make(chan []byte, 100), // 缓冲通道防止阻塞
+		entries: make(chan pretty.LogData, 100), // 缓冲通道防止阻塞
 	}
 	go tw.processEntries() // 启动后台处理协程
 	return tw
 }
 
-func (w *TelegramWriter) Write(p []byte) (n int, err error) {
-	pCopy := make([]byte, len(p))
-	copy(pCopy, p)
-	w.entries <- pCopy
+func (w *BotWriter) Write(p []byte) (n int, err error) {
+	var logData pretty.LogData
+	if err := json.Unmarshal(p, &logData); err != nil {
+		return 0, fmt.Errorf("解析 Bot 日志失败: %v", err)
+	}
+	w.entries <- logData
 	return len(p), nil
 }
 
-func (w *TelegramWriter) processEntries() {
-	for entry := range w.entries {
-		var logData map[string]interface{}
-		if err := json.Unmarshal(entry, &logData); err != nil {
-			fmt.Printf("解析 Bot 日志失败: %v\n", err)
+func (w *BotWriter) processEntries() {
+	for logData := range w.entries {
+		// 只打印交易日志
+		if typ, ok := logData["type"].(string); !ok || typ != "swap" {
 			continue
 		}
 		msgText := formatLogEntry(logData)
@@ -55,7 +58,7 @@ func (w *TelegramWriter) processEntries() {
 }
 
 // 置顶警告
-func (w *TelegramWriter) alertPin(remote tgApi.Message) {
+func (w *BotWriter) alertPin(remote tgApi.Message) {
 	pinMsg := &tgApi.PinChatMessageConfig{
 		ChatID:              w.chatID,
 		MessageID:           remote.MessageID,
@@ -67,7 +70,7 @@ func (w *TelegramWriter) alertPin(remote tgApi.Message) {
 	}
 }
 
-func formatLogEntry(logData map[string]interface{}) string {
+func formatLogEntry(logData pretty.LogData) string {
 
 	b := &bytes.Buffer{}
 
@@ -98,7 +101,7 @@ func formatLogEntry(logData map[string]interface{}) string {
 	return b.String()
 }
 
-func handleError(b *bytes.Buffer, data map[string]interface{}) {
+func handleError(b *bytes.Buffer, data pretty.LogData) {
 	b.WriteString("🚨 <b>错误警报</b>\n\n")
 
 	if msg, ok := data["message"].(string); ok {
@@ -110,7 +113,7 @@ func handleError(b *bytes.Buffer, data map[string]interface{}) {
 	b.WriteString("\n")
 }
 
-func handleInfo(b *bytes.Buffer, data map[string]interface{}) {
+func handleInfo(b *bytes.Buffer, data pretty.LogData) {
 	if msg, ok := data["message"].(string); ok {
 		switch {
 		case strings.Contains(msg, "成功"):
@@ -129,7 +132,7 @@ func handleInfo(b *bytes.Buffer, data map[string]interface{}) {
 	}
 }
 
-func handleSuccess(b *bytes.Buffer, data map[string]interface{}, msg string) {
+func handleSuccess(b *bytes.Buffer, data pretty.LogData, msg string) {
 	var title string
 	if strings.Contains(msg, "卖出") {
 		title = "📤 <b>卖出订单</b>"
@@ -151,7 +154,7 @@ func handleSuccess(b *bytes.Buffer, data map[string]interface{}, msg string) {
 	b.WriteString("\n")
 }
 
-func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
+func handleMetrics(b *bytes.Buffer, data pretty.LogData) {
 	b.WriteString("📊 <b>技术指标</b>\n")
 
 	if price, ok := data["Price"].(float64); ok {
@@ -177,7 +180,7 @@ func handleMetrics(b *bytes.Buffer, data map[string]interface{}) {
 }
 
 // 检查是否存在指标数据
-func hasMetrics(data map[string]interface{}) bool {
+func hasMetrics(data pretty.LogData) bool {
 	keys := []string{"Price", "RSI", "MA5", "MA20"}
 	for _, key := range keys {
 		if _, ok := data[key].(float64); ok {
@@ -187,7 +190,7 @@ func hasMetrics(data map[string]interface{}) bool {
 	return false
 }
 
-func getTime(data map[string]interface{}) string {
+func getTime(data pretty.LogData) string {
 	if t, ok := data["time"].(string); ok {
 		return t
 	}

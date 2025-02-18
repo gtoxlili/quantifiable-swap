@@ -4,48 +4,53 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"io"
 	"net/http"
 	"net/url"
 )
 
-type BarkWriter struct {
+type NotifyWriter struct {
 	token   string
-	entries chan []byte
+	entries chan pretty.LogData
 }
 
-func NewBarkWriter(token string) *BarkWriter {
-	bw := &BarkWriter{
+func NewNotifyWriter(token string) io.Writer {
+	bw := &NotifyWriter{
 		token:   token,
-		entries: make(chan []byte, 100),
+		entries: make(chan pretty.LogData, 100),
 	}
 	go bw.processEntries()
 	return bw
 }
 
-func (w *BarkWriter) Write(p []byte) (n int, err error) {
-	pCopy := make([]byte, len(p))
-	copy(pCopy, p)
-	w.entries <- pCopy
+func (w *NotifyWriter) Write(p []byte) (n int, err error) {
+	var logData pretty.LogData
+	if err := json.Unmarshal(p, &logData); err != nil {
+		return 0, fmt.Errorf("解析 Notify 日志失败: %w", err)
+	}
+	w.entries <- logData
 	return len(p), nil
+
 }
 
-func (w *BarkWriter) processEntries() {
-	for entry := range w.entries {
-		var logData map[string]interface{}
-		if err := json.Unmarshal(entry, &logData); err != nil {
-			fmt.Printf("解析 Bark 日志失败: %v\n", err)
+func (w *NotifyWriter) processEntries() {
+	for logData := range w.entries {
+		// 只对交易日志发送通知
+		if typ, ok := logData["type"].(string); !ok || typ != "swap" {
 			continue
 		}
+		// 只对 warn 和 error 级别的日志发送通知
 		if logData["level"] == "warn" || logData["level"] == "error" {
 			title, message, groupName := formatLogEntry(logData)
 			if err := w.notify(title, message, groupName); err != nil {
-				fmt.Printf("发送 Bark 消息失败: %v\n", err)
+				fmt.Printf("发送 Notify 消息失败: %v\n", err)
 			}
 		}
 	}
 }
 
-func formatLogEntry(logData map[string]interface{}) (title, message, groupName string) {
+func formatLogEntry(logData pretty.LogData) (title, message, groupName string) {
 	switch logData["level"] {
 	case "warn":
 		return handleWarn(logData)
@@ -56,7 +61,7 @@ func formatLogEntry(logData map[string]interface{}) (title, message, groupName s
 	}
 }
 
-func handleError(logData map[string]interface{}) (title, message, groupName string) {
+func handleError(logData pretty.LogData) (title, message, groupName string) {
 	id := fmt.Sprintf("%v", logData["ID"])
 	err := fmt.Sprintf("%v", logData["error"])
 
@@ -67,7 +72,7 @@ func handleError(logData map[string]interface{}) (title, message, groupName stri
 	return fmt.Sprintf("❌ [%s] %s", id, err), "", "自动交易"
 }
 
-func handleWarn(logData map[string]interface{}) (title, message, groupName string) {
+func handleWarn(logData pretty.LogData) (title, message, groupName string) {
 	id := fmt.Sprintf("%v", logData["ID"])
 
 	if msg, ok := logData["message"]; ok {
@@ -95,7 +100,7 @@ func handleWarn(logData map[string]interface{}) (title, message, groupName strin
 	panic("unexpected abnormal")
 }
 
-func (w *BarkWriter) notify(title, message string, groupName string) error {
+func (w *NotifyWriter) notify(title, message string, groupName string) error {
 	baseURL := fmt.Sprintf(
 		"https://api.day.app/%s/%s",
 		w.token,

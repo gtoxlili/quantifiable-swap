@@ -4,54 +4,53 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
 	"io"
 )
 
 type ConsoleWriter struct {
 	out        io.Writer
 	timeFormat string
-	entry      chan []byte
+	entry      chan pretty.LogData
 }
 
-func NewConsoleWriter(out io.Writer, timeFormat string) *ConsoleWriter {
+func NewConsoleWriter(out io.Writer, timeFormat string) io.Writer {
 	cw := &ConsoleWriter{
 		out:        out,
 		timeFormat: timeFormat,
-		entry:      make(chan []byte, 100),
+		entry:      make(chan pretty.LogData, 100),
 	}
 	go cw.processEntries()
 	return cw
 }
 
 func (cw *ConsoleWriter) Write(p []byte) (n int, err error) {
-	pCopy := make([]byte, len(p))
-	copy(pCopy, p)
-	cw.entry <- pCopy
+	var logData pretty.LogData
+	if err := json.Unmarshal(p, &logData); err != nil {
+		return 0, fmt.Errorf("解析 Console 日志失败: %v", err)
+	}
+	cw.entry <- logData
 	return len(p), nil
 }
 
 func (cw *ConsoleWriter) processEntries() {
-	for entry := range cw.entry {
-		msgBytes, err := formatLogEntry(entry)
-		if err != nil {
-			fmt.Printf("解析 Console 日志失败: %v\n", err)
-			continue
-		}
-
-		cw.out.Write(msgBytes)
+	for logData := range cw.entry {
+		cw.out.Write(formatLogEntry(logData))
 	}
 }
 
-func formatLogEntry(data []byte) ([]byte, error) {
-	var logData map[string]interface{}
-	if err := json.Unmarshal(data, &logData); err != nil {
-		return nil, err
-	}
-
+func formatLogEntry(logData pretty.LogData) []byte {
 	b := &bytes.Buffer{}
 
-	handlePrefix(b, logData)
-	divider(b)
+	typ := logData["type"]
+	// General log
+	if typ == "swap" {
+		handlePrefix(b, logData)
+		divider(b)
+	} else {
+		handleGeneralPrefix(b, logData)
+		divider(b)
+	}
 
 	// 如果有时间
 	if t, ok := logData["Time"].(string); ok {
@@ -68,7 +67,7 @@ func formatLogEntry(data []byte) ([]byte, error) {
 	}
 
 	b.WriteString("\n")
-	return b.Bytes(), nil
+	return b.Bytes()
 }
 
 var (
@@ -79,6 +78,8 @@ var (
 	colorCyan    = "\033[1;36m"
 	colorGreen   = "\033[1;32m"
 	colorYellow  = "\033[1;33m"
+	// 灰色
+	colorDarkGray = "\033[1;90m"
 )
 
 func colorize(text, color string) string {
@@ -89,7 +90,18 @@ func formatSegment(text, color string) string {
 	return fmt.Sprintf("[%s]", colorize(text, color))
 }
 
-func handlePrefix(b *bytes.Buffer, data map[string]interface{}) {
+func handleGeneralPrefix(b *bytes.Buffer, data pretty.LogData) {
+	if level, ok := data["level"].(string); ok {
+		b.WriteString(formatSegment(level, hashColor(level)))
+		delete(data, "level")
+	}
+	if t, ok := data["time"].(string); ok {
+		b.WriteString(formatSegment(t, colorDarkGray))
+		delete(data, "time")
+	}
+}
+
+func handlePrefix(b *bytes.Buffer, data pretty.LogData) {
 	if instID, ok := data["ID"]; ok {
 		b.WriteString(formatSegment(instID.(string), colorCyan))
 		delete(data, "ID")
@@ -118,7 +130,7 @@ func divider(b *bytes.Buffer) {
 	b.WriteString(colorize(" | ", colorBlue))
 }
 
-func handleError(b *bytes.Buffer, data map[string]interface{}) {
+func handleError(b *bytes.Buffer, data pretty.LogData) {
 	title := "Error"
 	if msg, ok := data["message"].(string); ok {
 		title = msg
@@ -136,7 +148,7 @@ func handleError(b *bytes.Buffer, data map[string]interface{}) {
 	b.Truncate(b.Len() - len(colorize(" | ", colorBlue)))
 }
 
-func handleInfo(b *bytes.Buffer, data map[string]interface{}) {
+func handleInfo(b *bytes.Buffer, data pretty.LogData) {
 	if msg, ok := data["message"].(string); ok {
 		b.WriteString(colorize(msg, colorGreen))
 		delete(data, "message")
@@ -156,7 +168,7 @@ func hashColor(s string) string {
 }
 
 // 打印多余的字段
-func handleExtraFields(b *bytes.Buffer, data map[string]interface{}) {
+func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 	for k, v := range data {
 		if k == "level" || k == "time" {
 			continue

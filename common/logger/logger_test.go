@@ -15,7 +15,7 @@ func TestNewLogger(t *testing.T) {
 	)
 
 	// Create logger instance
-	logger := NewLogger(testID, testProvider, testBar)
+	logger := NewSwapLogger(testID, testProvider, testBar)
 	// Test error logging
 	testErr := errors.New("test error")
 	logger.PrintError(testErr)
