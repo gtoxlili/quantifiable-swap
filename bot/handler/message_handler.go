@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -43,11 +44,14 @@ func (handler *BotHandler) recordMessageLog(u tgApi.Update) {
 	log := handler.Logger.Debug()
 
 	if u.Message != nil {
-		log.Int64("UserID", u.Message.From.ID).
-			Int64("ChatID", u.Message.Chat.ID).
+		if u.Message.From.IsBot {
+			return
+		}
+		log.Str("UserID", fmt.Sprintf("%d", u.Message.From.ID)).
+			Str("ChatID", fmt.Sprintf("%d", u.Message.Chat.ID)).
 			Str("Text", u.Message.Text).
 			Str("Username", u.Message.From.UserName).
-			Int("MessageID", u.Message.MessageID).
+			Str("MessageID", fmt.Sprintf("%d", u.Message.MessageID)).
 			Str("Type", "message")
 
 		if u.Message.IsCommand() {
@@ -56,19 +60,19 @@ func (handler *BotHandler) recordMessageLog(u tgApi.Update) {
 		}
 
 		if u.Message.ReplyToMessage != nil {
-			log.Int("ReplyToMessageID", u.Message.ReplyToMessage.MessageID).
-				Int64("ReplyToUserID", u.Message.ReplyToMessage.From.ID).
+			log.Str("ReplyToMessageID", fmt.Sprintf("%d", u.Message.ReplyToMessage.MessageID)).
+				Str("ReplyToUserID", fmt.Sprintf("%d", u.Message.ReplyToMessage.From.ID)).
 				Str("ReplyToUsername", u.Message.ReplyToMessage.From.UserName).
 				Str("ReplyToText", u.Message.ReplyToMessage.Text)
 		}
 	}
 
 	if u.CallbackQuery != nil {
-		log.Int64("UserID", u.CallbackQuery.From.ID).
-			Int64("ChatID", u.CallbackQuery.Message.Chat.ID).
+		log.Str("UserID", fmt.Sprintf("%d", u.CallbackQuery.From.ID)).
+			Str("ChatID", fmt.Sprintf("%d", u.CallbackQuery.Message.Chat.ID)).
 			Str("CallbackData", u.CallbackQuery.Data).
 			Str("Username", u.CallbackQuery.From.UserName).
-			Int("MessageID", u.CallbackQuery.Message.MessageID).
+			Str("MessageID", fmt.Sprintf("%d", u.CallbackQuery.Message.MessageID)).
 			Str("Type", "callback")
 	}
 

@@ -36,6 +36,9 @@ func (w *NotifyWriter) Write(p []byte) (n int, err error) {
 
 func (w *NotifyWriter) processEntries() {
 	for logData := range w.entries {
+		if dis, ok := logData["disableNotify"].(bool); ok && dis {
+			continue
+		}
 		// 只对交易日志发送通知
 		if typ, ok := logData["type"].(string); !ok || typ != "swap" {
 			continue

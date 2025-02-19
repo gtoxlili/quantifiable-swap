@@ -210,7 +210,7 @@ func getTime(data pretty.LogData) string {
 // 打印额外字段
 func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 	for k, v := range data {
-		if k == "level" || k == "time" || k == "type" || k == "message" || k == "error" {
+		if k == "level" || k == "time" || k == "type" || k == "message" || k == "error" || k == "disableNotify" {
 			continue
 		}
 		b.WriteString(fmt.Sprintf("💭 %s: <code>%v</code>\n", k, v))

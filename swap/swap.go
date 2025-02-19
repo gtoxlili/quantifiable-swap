@@ -101,7 +101,7 @@ func (r *IndicatorWaper) Run() {
 func (r *IndicatorWaper) RunWithCustomPeriod(period int) {
 	rsiHook, err := r.prepareIndicatorHook(period)
 	if err != nil {
-		r.log.PrintError(err)
+		r.log.PrintError(err, false)
 		return
 	}
 	r.runIndicatorLoop(rsiHook)
@@ -173,7 +173,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 
 			if err := r.canBuy(condition.Lst(r.lastBuyTrade)); err != nil {
 				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
-					r.log.PrintErrorWithTime(candle.Time, err)
+					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
@@ -189,7 +189,7 @@ func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[f
 
 			if err := r.canSell(condition.Lst(r.lastSellTrade)); err != nil {
 				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
-					r.log.PrintErrorWithTime(candle.Time, err)
+					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
 				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)

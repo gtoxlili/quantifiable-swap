@@ -170,7 +170,7 @@ func hashColor(s string) string {
 // 打印多余的字段
 func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 	for k, v := range data {
-		if k == "level" || k == "time" || k == "type" {
+		if k == "level" || k == "time" || k == "type" || k == "disableNotify" {
 			continue
 		}
 		var vv string

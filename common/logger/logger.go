@@ -64,8 +64,9 @@ func NewGeneralLogger() zerolog.Logger {
 }
 
 // PrintError 打印错误日志。
-func (l *Logger) PrintError(err error) {
-	l.log.Error().Err(err).Send()
+func (l *Logger) PrintError(err error, disableNotify bool) {
+	l.log.Error().Err(err).
+		Bool("disableNotify", disableNotify).Send()
 }
 
 func (l *Logger) PrintWAPStop() {
@@ -92,11 +93,12 @@ func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma2
 		Send()
 }
 
-// PrintErrorWithTime 打印包含特定时间的错误。
-func (l *Logger) PrintErrorWithTime(candleTime time.Time, err error) {
+// PrintErrorWithTime 打印包含特定时间的错误。(是否 Notify)
+func (l *Logger) PrintErrorWithTime(candleTime time.Time, err error, disableNotify bool) {
 	l.log.Error().
 		Time("Time", candleTime). // 时间
 		Err(err).
+		Bool("disableNotify", disableNotify).
 		Send()
 }
 
