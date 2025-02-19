@@ -17,11 +17,12 @@ type IManager interface {
 	RemoveAll()
 	RunJob(id string) error
 	JobNames() []string
+	JobsData() []config.Job
 }
 
 // Manager 用于管理 Job 的添加、删除和执行
 type Manager struct {
-	mu   sync.Mutex
+	mu   sync.RWMutex
 	jobs map[string]lo.Either[swap.IIndicatorWaper, config.Job]
 }
 
@@ -82,6 +83,7 @@ func (m *Manager) RemoveJob(id string) error {
 	if job, found := m.jobs[id]; found {
 		job.Left().Stop()
 		delete(m.jobs, id)
+		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
 }
@@ -95,8 +97,8 @@ func (m *Manager) RemoveAll() {
 
 // RunJob 根据 id 运行 Job
 func (m *Manager) RunJob(id string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if job, found := m.jobs[id]; found {
 		go job.Left().Run()
 		return nil
@@ -106,8 +108,8 @@ func (m *Manager) RunJob(id string) error {
 
 // JobNames 获取所有 Job Name
 func (m *Manager) JobNames() []string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	var names []string
 	for id, _ := range m.jobs {
 		names = append(names, id)
@@ -117,8 +119,8 @@ func (m *Manager) JobNames() []string {
 
 // JobsData 获取 []Job
 func (m *Manager) JobsData() []config.Job {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	var jobs []config.Job
 	for _, v := range m.jobs {
 		jobs = append(jobs, v.Right())

@@ -12,7 +12,7 @@ var (
 
 func init() {
 	if constants.TGBotToken != "" {
-		b, err := tgApi.NewBotAPIWithClient(constants.TGBotToken, tgApi.APIEndpoint, client.C)
+		b, err := tgApi.NewBotAPIWithClient(constants.TGBotToken, tgApi.APIEndpoint, client.CNoTimeout)
 		if err != nil {
 			panic(err)
 		}

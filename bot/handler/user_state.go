@@ -1,0 +1,24 @@
+package handler
+
+import (
+	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/job"
+	"github.com/rs/zerolog"
+)
+
+// SessionState holds the user's current interaction state in the bot.
+type SessionState struct {
+	CurrentAction string
+	TempJob       *config.Job
+	Step          int
+}
+
+// BotHandler orchestrates how the bot processes updates (messages, callbacks, etc.).
+// It manages user sessions and delegates work to other handlers.
+type BotHandler struct {
+	BotAPI     *tgApi.BotAPI
+	JobManager job.IManager
+	Sessions   map[int64]*SessionState
+	Logger     zerolog.Logger
+}
