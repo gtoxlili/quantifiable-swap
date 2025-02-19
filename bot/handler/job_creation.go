@@ -33,6 +33,11 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		}
 		session.TempJob.Symbol.Base = base
 		session.TempJob.Symbol.Quote = quote
+		if session.TempJob.Type == "notify" {
+			session.Step = 3
+			handler.promptProvider("数据", chatID)
+			return
+		}
 		session.Step++
 		handler.promptAmount(chatID)
 	case 2:
@@ -47,6 +52,11 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		handler.promptProvider("数据", chatID)
 	case 3:
 		session.TempJob.Provider.Name = strings.TrimSpace(msg.Text)
+		if session.TempJob.Type == "notify" {
+			session.Step = 5
+			handler.promptBarInterval(chatID)
+			return
+		}
 		session.Step++
 		handler.promptProvider("交易", chatID)
 	case 4:
@@ -68,20 +78,40 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 
 // showJobPreview displays a summary of the job to confirm creation.
 func (handler *BotHandler) showJobPreview(chatID int64, job *config.Job) {
-	msgText := fmt.Sprintf(
-		"📋 <b>任务预览</b>\n\n"+
-			"🔑 ID: <code>%s</code>\n"+
-			"📊 类型: <code>%s</code>\n"+
-			"💱 交易对: <code>%s/%s</code>\n"+
-			"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
-			"📡 数据提供商: <code>%s</code>\n"+
-			"🏛️ 交易提供商: <code>%s</code>\n"+
-			"⏱️ 采样间隔: <code>%s</code>\n\n"+
-			"⚠️ <i>请确认以上信息</i>",
-		job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
-		job.Amount.Buy, job.Amount.Sell, job.Provider.Name,
-		job.Provider.InjectOrder, job.Bar,
-	)
+	var msgText string
+	if job.Type == "notify" {
+		msgText = fmt.Sprintf(
+			"📋 <b>任务预览</b>\n\n"+
+				"🔑 ID: <code>%s</code>\n"+
+				"📊 类型: <code>%s</code>\n"+
+				"💱 交易对: <code>%s/%s</code>\n"+
+				"📡 数据提供商: <code>%s</code>\n"+
+				"⏱️ 采样间隔: <code>%s</code>\n\n"+
+				"⚠️ <i>请确认以上信息</i>",
+			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			job.Provider.Name, job.Bar,
+		)
+	} else {
+		ordPb := job.Provider.InjectOrder
+		if ordPb == "" {
+			ordPb = job.Provider.Name
+		}
+		msgText = fmt.Sprintf(
+			"📋 <b>任务预览</b>\n\n"+
+				"🔑 ID: <code>%s</code>\n"+
+				"📊 类型: <code>%s</code>\n"+
+				"💱 交易对: <code>%s/%s</code>\n"+
+				"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
+				"📡 数据提供商: <code>%s</code>\n"+
+				"🏛️ 交易提供商: <code>%s</code>\n"+
+				"⏱️ 采样间隔: <code>%s</code>\n\n"+
+				"⚠️ <i>请确认以上信息</i>",
+			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			job.Amount.Buy, job.Amount.Sell, job.Provider.Name,
+			ordPb, job.Bar,
+		)
+	}
+
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData("确定", "confirm_job_creation"),

@@ -36,6 +36,7 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 			handler.sendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
 			return
 		}
+		_ = handler.JobManager.RunJob(session.TempJob.GetId())
 		handler.sendMessage(query.Message.Chat.ID, "✅ <b>任务创建成功</b>")
 		delete(handler.Sessions, query.Message.Chat.ID)
 	} else if strings.HasPrefix(query.Data, "confirm_delete_") {
