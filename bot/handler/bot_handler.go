@@ -5,15 +5,13 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common/job"
 	"github.com/gtoxlili/quantifiable-swap/common/logger"
 	"github.com/gtoxlili/quantifiable-swap/constants"
-	"strconv"
 )
 
 // NewBotHandler constructs a new BotHandler with the given bot API and job manager.
 func NewBotHandler(bot *tgApi.BotAPI, manager job.IManager) *BotHandler {
-	ownId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
 	return &BotHandler{
 		BotAPI:     bot,
-		OwnerID:    ownId,
+		OwnerID:    constants.TGChatID,
 		JobManager: manager,
 		Logger:     logger.NewGeneralLogger(),
 	}

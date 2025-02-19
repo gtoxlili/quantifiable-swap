@@ -36,7 +36,9 @@ func (cw *ConsoleWriter) Write(p []byte) (n int, err error) {
 
 func (cw *ConsoleWriter) processEntries() {
 	for logData := range cw.entry {
-		cw.out.Write(formatLogEntry(logData))
+		if pretty.IsAuthorizedSubscriber(logData) {
+			cw.out.Write(formatLogEntry(logData))
+		}
 	}
 }
 

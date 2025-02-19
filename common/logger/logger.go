@@ -11,7 +11,6 @@ import (
 	"github.com/rs/zerolog"
 	"io"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -33,9 +32,8 @@ func init() {
 	outSet = append(outSet, console.NewConsoleWriter(os.Stdout, "15:04:05"))
 
 	// todo: 待修改
-	if bot.Bot != nil && constants.TGChatID != "" {
-		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
-		outSet = append(outSet, tglog.NewBotWriter(bot.Bot, chatId))
+	if bot.Bot != nil {
+		outSet = append(outSet, tglog.NewBotWriter(bot.Bot))
 	}
 
 	if constants.BarkToken != "" {

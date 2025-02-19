@@ -36,6 +36,9 @@ func (w *NotifyWriter) Write(p []byte) (n int, err error) {
 
 func (w *NotifyWriter) processEntries() {
 	for logData := range w.entries {
+		if !pretty.IsAuthorizedSubscriber(logData) {
+			continue
+		}
 		if dis, ok := logData["disableNotify"].(bool); ok && dis {
 			continue
 		}

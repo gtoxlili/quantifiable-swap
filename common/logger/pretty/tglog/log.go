@@ -6,20 +6,19 @@ import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"github.com/gtoxlili/quantifiable-swap/constants"
 	"io"
 	"strings"
 )
 
 type BotWriter struct {
 	bot     *tgApi.BotAPI
-	chatID  int64
 	entries chan pretty.LogData
 }
 
-func NewBotWriter(bot *tgApi.BotAPI, chatID int64) io.Writer {
+func NewBotWriter(bot *tgApi.BotAPI) io.Writer {
 	tw := &BotWriter{
 		bot:     bot,
-		chatID:  chatID,
 		entries: make(chan pretty.LogData, 100), // 缓冲通道防止阻塞
 	}
 	go tw.processEntries() // 启动后台处理协程
@@ -39,25 +38,28 @@ func (w *BotWriter) processEntries() {
 	for logData := range w.entries {
 		msgText := formatLogEntry(logData)
 
-		msg := tgApi.NewMessage(w.chatID, msgText)
-		msg.ParseMode = tgApi.ModeHTML
-		// 置顶
-		remote, err := w.bot.Send(msg)
-		if err != nil {
-			// 处理发送错误，可以添加重试逻辑
-			fmt.Printf("发送 Bot 消息失败: %v\n", err)
-			continue
-		}
-		if logData["level"] == "warn" || logData["level"] == "error" {
-			w.alertPin(remote)
+		subIds := getSubscribers(logData)
+		for _, id := range subIds {
+			msg := tgApi.NewMessage(id, msgText)
+			msg.ParseMode = tgApi.ModeHTML
+			// 置顶
+			remote, err := w.bot.Send(msg)
+			if err != nil {
+				// 处理发送错误，可以添加重试逻辑
+				fmt.Printf("发送 Bot 消息失败: %v\n", err)
+				continue
+			}
+			if logData["level"] == "warn" || logData["level"] == "error" {
+				w.alertPin(remote, id)
+			}
 		}
 	}
 }
 
 // 置顶警告
-func (w *BotWriter) alertPin(remote tgApi.Message) {
+func (w *BotWriter) alertPin(remote tgApi.Message, chatId int64) {
 	pinMsg := &tgApi.PinChatMessageConfig{
-		ChatID:              w.chatID,
+		ChatID:              chatId,
 		MessageID:           remote.MessageID,
 		DisableNotification: false,
 	}
@@ -205,6 +207,17 @@ func getTime(data pretty.LogData) string {
 		return t
 	}
 	return "N/A"
+}
+
+func getSubscribers(data pretty.LogData) []int64 {
+	if subscribers, ok := data["subscribers"].([]interface{}); ok {
+		var ids []int64
+		for _, subscriber := range subscribers {
+			ids = append(ids, int64(subscriber.(float64)))
+		}
+		return ids
+	}
+	return []int64{constants.TGChatID}
 }
 
 // 打印额外字段

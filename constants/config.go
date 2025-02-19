@@ -1,5 +1,7 @@
 package constants
 
+import "strconv"
+
 var (
 	OkxAPIKey      = ""
 	OkxSecretKey   = ""
@@ -8,6 +10,12 @@ var (
 	BarkToken      = ""
 	ByBitAPIKey    = ""
 	ByBitAPISecret = ""
-	TGBotToken     = "7102299208:AAHiPGCMtPWvMYwrm62eW_bpkperpsPncMg"
-	TGChatID       = "584544685"
+	TGBotToken     = ""
+	TGChatID       int64
+
+	tmpTgChatID = ""
 )
+
+func init() {
+	TGChatID, _ = strconv.ParseInt(tmpTgChatID, 10, 64)
+}

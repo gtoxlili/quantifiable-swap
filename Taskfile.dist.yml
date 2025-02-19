@@ -31,7 +31,7 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey={{.BYBIT_API_KEY}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret={{.BYBIT_API_SECRET}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken={{.TG_BOT_TOKEN}}' \
-        -X 'github.com/gtoxlili/quantifiable-swap/constants.TGChatID={{.TG_CHAT_ID}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.tmpTgChatID={{.TG_CHAT_ID}}' \
         -w -s -buildid="
   # 上传程序至远程服务器
   deploy-binary:

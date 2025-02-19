@@ -8,7 +8,6 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common/smap"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"golang.org/x/exp/slices"
-	"strconv"
 	"time"
 
 	"github.com/gtoxlili/quantifiable-swap/provider"
@@ -89,9 +88,8 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 
 	// 鲁棒性处理
 	if len(j.Subscribers) == 0 {
-		ownId, err := strconv.ParseInt(constants.TGChatID, 10, 64)
 		if err == nil {
-			j.Subscribers = []int64{ownId}
+			j.Subscribers = []int64{constants.TGChatID}
 		}
 	}
 
