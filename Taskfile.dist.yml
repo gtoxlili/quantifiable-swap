@@ -36,12 +36,14 @@ tasks:
   # 上传程序至远程服务器
   deploy-binary:
     cmds:
-      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}}"
+      - ssh {{.REMOTE_ADDRESS}} "mkdir -p {{.REMOTE_DIR}}"
+      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} delete {{.BINARY_NAME}} || true"
       - scp -r ./dist/{{.BINARY_NAME}} {{.REMOTE_ADDRESS}}:{{.REMOTE_DIR}}
-      - ssh {{.REMOTE_ADDRESS}} "{{.REMOTE_PM2_PATH}} start {{.REMOTE_DIR}}{{.BINARY_NAME}};{{.REMOTE_PM2_PATH}} save"
+      - ssh {{.REMOTE_ADDRESS}} "cd {{.REMOTE_DIR}};{{.REMOTE_PM2_PATH}} start {{.BINARY_NAME}};{{.REMOTE_PM2_PATH}} save"
   # 上传配置文件至远程服务器
   deploy-config:
     cmds:
+      - ssh {{.REMOTE_ADDRESS}} "mkdir -p {{.REMOTE_DIR}}"
       - scp -r ./config.yaml {{.REMOTE_ADDRESS}}:{{.REMOTE_DIR}}
   linux-amd64:
     cmds:
