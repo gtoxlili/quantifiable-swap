@@ -11,21 +11,21 @@ import (
 
 // initializeJobCreation sets up a new session state for creating a job.
 func (handler *BotHandler) initializeJobCreation(chatID int64) {
-	handler.Sessions[chatID] = &SessionState{
+	handler.Sessions.Store(chatID, &SessionState{
 		CurrentAction: "action_create_job",
-		TempJob:       &config.Job{},
+		TempJob:       &config.Job{Subscribers: []int64{chatID}},
 		Step:          0,
-	}
+	})
 }
 
-//// 游客只能创建 notify 类型的任务
-//func (handler *BotHandler) initializeJobCreationForGuest(chatID int64) {
-//	handler.Sessions[chatID] = &SessionState{
-//		CurrentAction: "action_create_job",
-//		TempJob:       &config.Job{Type: "notify", Creator: chatID},
-//		Step:          1,
-//	}
-//}
+// 游客只能创建 notify 类型的任务
+func (handler *BotHandler) initializeJobCreationForGuest(chatID int64) {
+	handler.Sessions.Store(chatID, &SessionState{
+		CurrentAction: "action_create_job",
+		TempJob:       &config.Job{Type: "notify", Subscribers: []int64{chatID}},
+		Step:          1,
+	})
+}
 
 // continueJobCreation advances the job creation flow based on the current step.
 func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *SessionState) {
@@ -141,8 +141,8 @@ func (handler *BotHandler) promptJobType(chatID int64) {
 }
 
 func (handler *BotHandler) handleJobTypeSelection(query *tgApi.CallbackQuery) {
-	session := handler.Sessions[query.Message.Chat.ID]
-	if session == nil {
+	session, found := handler.Sessions.Load(query.Message.Chat.ID)
+	if !found {
 		return
 	}
 	jobType := strings.TrimPrefix(query.Data, "type_")

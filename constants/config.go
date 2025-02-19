@@ -8,6 +8,6 @@ var (
 	BarkToken      = ""
 	ByBitAPIKey    = ""
 	ByBitAPISecret = ""
-	TGBotToken     = ""
-	TGChatID       = ""
+	TGBotToken     = "7102299208:AAHiPGCMtPWvMYwrm62eW_bpkperpsPncMg"
+	TGChatID       = "584544685"
 )

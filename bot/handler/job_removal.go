@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"golang.org/x/exp/slices"
 	"strings"
 
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -10,7 +11,13 @@ import (
 // promptJobRemoval displays a list of existing jobs in a more user-friendly layout
 // and asks the user to select which job they would like to remove.
 func (handler *BotHandler) promptJobRemoval(chatID int64) {
-	jobs := handler.JobManager.JobNames()
+	jobsData := handler.JobManager.JobsData()
+	var jobs []string
+	for _, jobData := range jobsData {
+		if slices.Contains(jobData.Subscribers, chatID) {
+			jobs = append(jobs, jobData.GetId())
+		}
+	}
 	if len(jobs) == 0 {
 		handler.sendMessage(chatID, "ℹ️ <b>系统提示</b>\n\n<i>当前没有任何可释放的任务</i>")
 		return
@@ -53,7 +60,7 @@ func (handler *BotHandler) handleJobRemovalConfirmation(query *tgApi.CallbackQue
 	chatID := query.Message.Chat.ID
 	data := query.Data
 	jobID := strings.TrimPrefix(data, "confirm_delete_")
-	err := handler.JobManager.RemoveJob(jobID)
+	err := handler.JobManager.RemoveSubscriber(jobID, chatID)
 	if err != nil {
 		handler.sendMessage(chatID, fmt.Sprintf("❌ <b>释放失败</b>\n\n"+
 			"任务ID: <code>%s</code>\n"+

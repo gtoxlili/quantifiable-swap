@@ -8,7 +8,7 @@ import (
 // processIncomingMessage inspects the user's session state (if any) and
 // delegates either stateful flow handling or command handling.
 func (handler *BotHandler) processIncomingMessage(msg *tgApi.Message) {
-	session := handler.Sessions[msg.Chat.ID]
+	session, _ := handler.Sessions.Load(msg.Chat.ID)
 	switch {
 	case session != nil:
 		handler.handleStatefulFlow(msg, session)
@@ -32,11 +32,11 @@ func (handler *BotHandler) handleCommand(msg *tgApi.Message) {
 	cmd := msg.Command()
 	switch cmd {
 	case "addjob":
-		//if handler.OwnerID != chatID {
-		//	handler.initializeJobCreationForGuest(chatID)
-		//	handler.sendMessage(chatID, "💱 <b>输入交易对</b>\n\n格式：<code>BASE/QUOTE</code>")
-		//	return
-		//}
+		if handler.OwnerID != chatID {
+			handler.initializeJobCreationForGuest(chatID)
+			handler.sendMessage(chatID, "💱 <b>输入交易对</b>\n\n格式：<code>BASE/QUOTE</code>")
+			return
+		}
 		handler.initializeJobCreation(chatID)
 		handler.promptJobType(chatID)
 	case "removejob":

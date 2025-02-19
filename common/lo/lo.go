@@ -64,3 +64,13 @@ func (e Either[L, R]) Left() L {
 func (e Either[L, R]) Right() R {
 	return e.r
 }
+
+// Delete 从列表中删除元素
+func Delete[T comparable](s []T, i T) []T {
+	for idx, v := range s {
+		if v == i {
+			return append(s[:idx], s[idx+1:]...)
+		}
+	}
+	return s
+}

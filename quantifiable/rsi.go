@@ -1,6 +1,7 @@
 package quantifiable
 
 import (
+	"context"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 )
@@ -35,7 +36,7 @@ func NewRSI[T Number](period int, seq sequence.Sequence[T]) (Indicator[T], error
 }
 
 // Update Hook
-func (rsi *RSI[T]) Update() (*sequence.Candle[T], error) {
+func (rsi *RSI[T]) Update(ctx context.Context) (*sequence.Candle[T], error) {
 	// defer fmt.Println("RSI Update")
 	// 调用底层 Sequence 的 Update() 得到最新的 1 分钟 Candle
 
@@ -45,7 +46,7 @@ func (rsi *RSI[T]) Update() (*sequence.Candle[T], error) {
 		rsi.recentRSIQueue = rsi.recentRSIQueue[1:]
 	}
 
-	_, err := rsi.Sequence.Update()
+	_, err := rsi.Sequence.Update(ctx)
 	if err != nil {
 		return nil, err
 	}

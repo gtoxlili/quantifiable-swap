@@ -27,8 +27,8 @@ func (handler *BotHandler) processCallbackQuery(query *tgApi.CallbackQuery) {
 // handleConfirmation processes confirmation callbacks (e.g., job creation).
 func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 	if strings.HasSuffix(query.Data, "job_creation") {
-		session := handler.Sessions[query.Message.Chat.ID]
-		if session == nil {
+		session, ok := handler.Sessions.Load(query.Message.Chat.ID)
+		if !ok {
 			handler.sendMessage(query.Message.Chat.ID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
 			return
 		}
@@ -38,7 +38,7 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 		}
 		_ = handler.JobManager.RunJob(session.TempJob.GetId())
 		handler.sendMessage(query.Message.Chat.ID, "✅ <b>任务创建成功</b>")
-		delete(handler.Sessions, query.Message.Chat.ID)
+		handler.Sessions.Delete(query.Message.Chat.ID)
 	} else if strings.HasPrefix(query.Data, "confirm_delete_") {
 		handler.handleJobRemovalConfirmation(query)
 	}
@@ -46,7 +46,7 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 
 func (handler *BotHandler) handleCancel(query *tgApi.CallbackQuery) {
 	if strings.HasSuffix(query.Data, "job_creation") {
-		delete(handler.Sessions, query.Message.Chat.ID)
+		handler.Sessions.Delete(query.Message.Chat.ID)
 		handler.sendMessage(query.Message.Chat.ID, "🚫 <b>任务创建已取消</b>")
 		return
 	} else if strings.HasSuffix(query.Data, "delete") {

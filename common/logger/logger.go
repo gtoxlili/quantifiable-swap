@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"context"
+	"errors"
 	"github.com/gtoxlili/quantifiable-swap/bot"
 	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/bark"
 	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/console"
@@ -30,6 +32,7 @@ func init() {
 	var outSet []io.Writer
 	outSet = append(outSet, console.NewConsoleWriter(os.Stdout, "15:04:05"))
 
+	// todo: 待修改
 	if bot.Bot != nil && constants.TGChatID != "" {
 		chatId, _ := strconv.ParseInt(constants.TGChatID, 10, 64)
 		outSet = append(outSet, tglog.NewBotWriter(bot.Bot, chatId))
@@ -63,19 +66,24 @@ func NewGeneralLogger() zerolog.Logger {
 		Logger()
 }
 
+func (l *Logger) WithSubscribers(subscribers []int64) *Logger {
+	return &Logger{
+		log: l.log.With().Ints64("subscribers", subscribers).Logger(),
+	}
+}
+
 // PrintError 打印错误日志。
 func (l *Logger) PrintError(err error, disableNotify bool) {
+	if errors.Is(err, context.Canceled) {
+		l.PrintWAPStop()
+		return
+	}
 	l.log.Error().Err(err).
 		Bool("disableNotify", disableNotify).Send()
 }
 
 func (l *Logger) PrintWAPStop() {
 	l.log.Info().Msg("量化策略已停止")
-}
-
-// PrintUpdatePriceFail 记录更新价格序列失败。
-func (l *Logger) PrintUpdatePriceFail(err error) {
-	l.log.Error().Err(err).Msg("更新价格序列失败")
 }
 
 // PrintIndicatorLog 演示打印多个字段：时间、价格、RSI、MA5、MA20。

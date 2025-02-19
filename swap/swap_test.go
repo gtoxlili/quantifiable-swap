@@ -1,10 +1,6 @@
 package swap
 
 import (
-	"fmt"
-	"github.com/gtoxlili/quantifiable-swap/provider"
-	"github.com/gtoxlili/quantifiable-swap/quantifiable"
-	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/tools/container/intsets"
 	"testing"
 	"time"
@@ -115,85 +111,4 @@ func TestDefaultCanBuy_BuyTooFrequent(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Equal(t, "买入太频繁", err.Error())
-}
-
-// mockRSIHook 用来模拟一个能返回固定序列RSI值的“假”RSI包装器
-type mockRSIHook struct {
-	rsiValues    []float64
-	currentIndex int
-}
-
-func (m *mockRSIHook) Indicator(name string) (quantifiable.IndicatorMetrics[float64], error) {
-	return m, nil
-}
-
-func (m *mockRSIHook) Candles() []sequence.Candle[float64] {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *mockRSIHook) Bar() time.Duration {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *mockRSIHook) LastBarIndex() int {
-	//TODO implement me
-	panic("implement me")
-}
-
-// Update 模拟获取最新蜡烛数据，这里仅返回一个虚拟蜡烛（在 runRSILoop 中只关心时间和价格就可）
-func (m *mockRSIHook) Update() (*sequence.Candle[float64], error) {
-	if m.currentIndex >= len(m.rsiValues) {
-		time.Sleep(1 * time.Second)
-		return nil, fmt.Errorf("数据已经用完")
-	}
-	candle := &sequence.Candle[float64]{
-		Time:  time.Now(),
-		Value: 100.0,
-	}
-	m.currentIndex++
-	return candle, nil
-}
-
-// CurrentRSI 返回当前 RSI 值
-func (m *mockRSIHook) CurrentVal() float64 {
-	if m.currentIndex == 0 {
-		return 50.0 // 如果还没 Update，就给个中间值
-	}
-	if m.currentIndex > len(m.rsiValues) {
-		return 50.0
-	}
-	return m.rsiValues[m.currentIndex-1]
-}
-
-// LastRSIs 返回最近若干个 RSI 值
-func (m *mockRSIHook) PreviousVals() []float64 {
-	return m.rsiValues[m.currentIndex-6 : m.currentIndex-1]
-}
-
-func TestRSIWaper_runRSILoop_BuySell(t *testing.T) {
-	// 设定 RSI 序列：手动让它依次经过 <30, >70 等范围
-	rsiSequence := []float64{
-		50, 50, 50, 50, 50, // 5 个 -1，表示数据不足
-		35, 33, 29.5, // 降到<30，触发买入
-		40, 65, 75, // 升到>70，触发卖出
-		28, 72, // 再次降到<30 再升到>70
-	}
-
-	// 初始化一个 mockRSIHook
-	mockHook := &mockRSIHook{
-		rsiValues:    rsiSequence,
-		currentIndex: 5,
-	}
-
-	okxProvider := provider.NewOkx()
-	r := NewWaper("BTC", "USDT", time.Minute, 10, 10, okxProvider)
-
-	go func() {
-		time.Sleep(2 * time.Second)
-		r.Stop()
-	}()
-
-	r.runIndicatorLoop(mockHook)
 }

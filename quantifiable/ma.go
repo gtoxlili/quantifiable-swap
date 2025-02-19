@@ -1,6 +1,7 @@
 package quantifiable
 
 import (
+	"context"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 )
 
@@ -37,8 +38,8 @@ func (ma *MA[T]) PreviousVals() []float64 {
 }
 
 // Update updates the embedded sequence and appends the newly calculated moving average to recentMAQueue.
-func (ma *MA[T]) Update() (*sequence.Candle[T], error) {
-	candle, err := ma.Sequence.Update()
+func (ma *MA[T]) Update(ctx context.Context) (*sequence.Candle[T], error) {
+	candle, err := ma.Sequence.Update(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package swap
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
@@ -15,10 +16,9 @@ import (
 
 // IIndicatorWaper 接口
 type IIndicatorWaper interface {
-	Run()
-	Stop()
-	//WithNotifyID(notifyID int64)
-	RunWithCustomPeriod(period int)
+	Run(ctx context.Context)
+	WithSubscribers(subscribers []int64)
+	RunWithCustomPeriod(ctx context.Context, period int)
 }
 
 // LastTrade 最后一次 购买/卖出 的快照
@@ -45,8 +45,6 @@ type IndicatorWaper struct {
 	canSell func(tc TradeCondition) error
 	canBuy  func(tc TradeCondition) error
 
-	stopChan chan struct{}
-
 	dataProvider provider.Provider
 
 	log *logger.Logger
@@ -72,7 +70,6 @@ func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, s
 		autoTrade:    autoTrade,
 		canSell:      canSell,
 		canBuy:       canBuy,
-		stopChan:     make(chan struct{}),
 		dataProvider: dataProvider,
 
 		// 初始化快照
@@ -91,29 +88,25 @@ func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, s
 	return ind
 }
 
-//func (r *IndicatorWaper) WithNotifyID(notifyID int64) {
-//	r.log = r.log.WithNotifyID(notifyID)
-//}
-
-func (r *IndicatorWaper) Stop() {
-	close(r.stopChan)
+func (r *IndicatorWaper) WithSubscribers(subscribers []int64) {
+	r.log = r.log.WithSubscribers(subscribers)
 }
 
-func (r *IndicatorWaper) Run() {
-	r.RunWithCustomPeriod(14)
+func (r *IndicatorWaper) Run(ctx context.Context) {
+	r.RunWithCustomPeriod(ctx, 14)
 }
 
-func (r *IndicatorWaper) RunWithCustomPeriod(period int) {
-	rsiHook, err := r.prepareIndicatorHook(period)
+func (r *IndicatorWaper) RunWithCustomPeriod(ctx context.Context, period int) {
+	rsiHook, err := r.prepareIndicatorHook(ctx, period)
 	if err != nil {
 		r.log.PrintError(err, false)
 		return
 	}
-	r.runIndicatorLoop(rsiHook)
+	r.runIndicatorLoop(ctx, rsiHook)
 }
 
-func (r *IndicatorWaper) prepareIndicatorHook(period int) (quantifiable.IndicatorDecorator[float64], error) {
-	priceSeq, err := sequence.NewPriceSequence(r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
+func (r *IndicatorWaper) prepareIndicatorHook(ctx context.Context, period int) (quantifiable.IndicatorDecorator[float64], error) {
+	priceSeq, err := sequence.NewPriceSequence(ctx, r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
 		return nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
@@ -125,16 +118,16 @@ func (r *IndicatorWaper) prepareIndicatorHook(period int) (quantifiable.Indicato
 		Build()
 }
 
-func (r *IndicatorWaper) runIndicatorLoop(hook quantifiable.IndicatorDecorator[float64]) {
+func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable.IndicatorDecorator[float64]) {
 	for {
 		select {
-		case <-r.stopChan:
+		case <-ctx.Done():
 			r.log.PrintWAPStop()
 			return
 		default:
-			candle, err := hook.Update()
+			candle, err := hook.Update(ctx)
 			if err != nil {
-				r.log.PrintUpdatePriceFail(err)
+				r.log.PrintError(fmt.Errorf("更新价格序列失败：%w", err), false)
 				return
 			}
 

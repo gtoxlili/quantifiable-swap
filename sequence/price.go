@@ -1,6 +1,7 @@
 package sequence
 
 import (
+	"context"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/provider"
 	"strconv"
@@ -25,7 +26,7 @@ type PriceSequence struct {
 }
 
 // NewPriceSequence 返回一个新的价格序列
-func NewPriceSequence(base, quote string, bar time.Duration, maxLen int, dataProvider provider.Provider) (Sequence[float64], error) {
+func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration, maxLen int, dataProvider provider.Provider) (Sequence[float64], error) {
 	scale := int(bar / Frequency)
 	ps := &PriceSequence{
 		base:         base,
@@ -35,13 +36,13 @@ func NewPriceSequence(base, quote string, bar time.Duration, maxLen int, dataPro
 		dataProvider: dataProvider,
 	}
 	// 初始化历史数据
-	if err := ps.initHistory(); err != nil {
+	if err := ps.initHistory(ctx); err != nil {
 		return nil, fmt.Errorf("初始化历史数据失败：%v", err)
 	}
 	return ps, nil
 }
 
-func (ps *PriceSequence) initHistory() error {
+func (ps *PriceSequence) initHistory(ctx context.Context) error {
 	// 请求历史数据 (bar * maxLen) (因为获取的时间精度是 1m 的，所以这里的 bar 如果是 15m，那么就是 15*maxLen)
 	aft := ""
 	var tmpCandles []*provider.TpRes
@@ -51,23 +52,29 @@ func (ps *PriceSequence) initHistory() error {
 		curLim = ps.maxLen
 	}
 
+outer:
 	for {
-		//candles, err := ps.appendTimeRange(aft, 100)
-		candles, err := ps.dataProvider.GetHistoryTpRes(ps.base, ps.quote, aft, curLim)
-		if err != nil {
-			return err
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			candles, err := ps.dataProvider.GetHistoryTpRes(ps.base, ps.quote, aft, curLim)
+			if err != nil {
+				return err
+			}
+			if len(candles) == 0 {
+				break outer
+			}
+			tmpCandles = append(tmpCandles, candles...)
+			if len(tmpCandles) >= ps.maxLen {
+				// 截掉后面多余的数据
+				tmpCandles = tmpCandles[:ps.maxLen]
+				break outer
+			}
+			aft = candles[len(candles)-1].Timestamp
 		}
-		if len(candles) == 0 {
-			break
-		}
-		tmpCandles = append(tmpCandles, candles...)
-		if len(tmpCandles) >= ps.maxLen {
-			// 截掉后面多余的数据
-			tmpCandles = tmpCandles[:ps.maxLen]
-			break
-		}
-		aft = candles[len(candles)-1].Timestamp
 	}
+
 	// 逆序追加
 	for i := len(tmpCandles) - 1; i >= 0; i-- {
 		timestamp, _ := strconv.ParseInt(tmpCandles[i].Timestamp, 10, 64)
@@ -84,10 +91,9 @@ func (ps *PriceSequence) Bar() time.Duration {
 }
 
 // Update 更新价格序列
-func (ps *PriceSequence) Update() (*Candle[float64], error) {
-	// defer fmt.Println("PriceSequence Update")
+func (ps *PriceSequence) Update(ctx context.Context) (*Candle[float64], error) {
 	// 延迟 bar 时间
-	if err := ps.delay(); err != nil {
+	if err := ps.delay(ctx); err != nil {
 		return nil, err
 	}
 	tpPair, err := ps.dataProvider.GetLatestTpRes(ps.base, ps.quote)
@@ -119,10 +125,14 @@ func (ps *PriceSequence) LastBarIndex() int {
 	return int(lastTime.Sub(lastTime.Truncate(ps.bar)) / Frequency)
 }
 
-func (ps *PriceSequence) delay() error {
+func (ps *PriceSequence) delay(ctx context.Context) error {
 	next := time.Now().Truncate(Frequency).Add(Frequency)
-	time.Sleep(time.Until(next))
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(time.Until(next)):
+		return nil
+	}
 }
 
 // Append 向价格序列追加一个新的价格，若超过 maxLen 则移除最旧的价格

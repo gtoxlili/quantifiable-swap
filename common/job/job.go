@@ -1,10 +1,14 @@
 package job
 
 import (
+	"context"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
-	"sync"
+	"github.com/gtoxlili/quantifiable-swap/common/smap"
+	"github.com/gtoxlili/quantifiable-swap/constants"
+	"golang.org/x/exp/slices"
+	"strconv"
 	"time"
 
 	"github.com/gtoxlili/quantifiable-swap/provider"
@@ -14,37 +18,46 @@ import (
 type IManager interface {
 	AddJob(j config.Job) (string, error)
 	RemoveJob(id string) error
+	RemoveSubscriber(id string, chatID int64) error
 	RemoveAll()
 	RunJob(id string) error
-	JobNames() []string
+	StopJob(id string) error
 	JobsData() []config.Job
+}
+
+// Job Map Value 的结构
+type Job struct {
+	conf   *config.Job
+	waper  swap.IIndicatorWaper
+	cancel context.CancelFunc
 }
 
 // Manager 用于管理 Job 的添加、删除和执行
 type Manager struct {
-	mu   sync.RWMutex
-	jobs map[string]lo.Either[swap.IIndicatorWaper, config.Job]
+	jobs smap.SyncMap[string, *Job]
 }
 
 // NewManager 创建一个新的 Manager
 func NewManager() IManager {
-	return &Manager{
-		jobs: make(map[string]lo.Either[swap.IIndicatorWaper, config.Job]),
-	}
+	return &Manager{}
 }
 
 // AddJob 添加一个新的 Job
 func (m *Manager) AddJob(j config.Job) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if err := j.Validate("Id", "InjectOrder", "Sell", "Buy"); err != nil {
+	if err := j.Validate("InjectOrder", "Sell", "Buy", "Subscribers"); err != nil {
 		return "", err
 	}
 
-	// id 不可重复
-	if _, found := m.jobs[j.GetId()]; found {
-		return "", fmt.Errorf("job %s 已存在", j.GetId())
+	// id 重复时，添加订阅者
+	if job, found := m.jobs.Load(j.GetId()); found {
+		subscribers := job.conf.Subscribers
+		if slices.Contains(subscribers, j.Subscribers[0]) {
+			return "", fmt.Errorf("job %s 已存在", j.GetId())
+		}
+		subscribers = append(subscribers, j.Subscribers[0])
+		job.conf.Subscribers = subscribers
+		job.waper.WithSubscribers(subscribers)
+		return j.GetId(), nil
 	}
 
 	prov := provider.NewProvider(j.Provider.Name)
@@ -74,18 +87,46 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}
 
-	m.jobs[j.GetId()] = lo.NewEither(waper, j)
+	// 鲁棒性处理
+	if len(j.Subscribers) == 0 {
+		ownId, err := strconv.ParseInt(constants.TGChatID, 10, 64)
+		if err == nil {
+			j.Subscribers = []int64{ownId}
+		}
+	}
+
+	waper.WithSubscribers(j.Subscribers)
+	m.jobs.Store(j.GetId(), &Job{
+		conf:  &j,
+		waper: waper,
+	})
 
 	return j.GetId(), nil
 }
 
 // RemoveJob 根据 id 删除 Job
 func (m *Manager) RemoveJob(id string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if job, found := m.jobs[id]; found {
-		job.Left().Stop()
-		delete(m.jobs, id)
+	if job, found := m.jobs.Load(id); found {
+		if job.cancel != nil {
+			if err := m.StopJob(id); err != nil {
+				return err
+			}
+		}
+		m.jobs.Delete(id)
+		return nil
+	}
+	return fmt.Errorf("job %s 不存在", id)
+}
+
+// RemoveSubscriber 删除某个订阅者，如果没有订阅者则删除 Job
+func (m *Manager) RemoveSubscriber(id string, chatID int64) error {
+	if job, found := m.jobs.Load(id); found {
+		subscribers := lo.Delete(job.conf.Subscribers, chatID)
+		if len(subscribers) == 0 {
+			return m.RemoveJob(id)
+		}
+		job.conf.Subscribers = subscribers
+		job.waper.WithSubscribers(subscribers)
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
@@ -93,40 +134,39 @@ func (m *Manager) RemoveJob(id string) error {
 
 // RemoveAll 终止所有 Job
 func (m *Manager) RemoveAll() {
-	for id, _ := range m.jobs {
-		_ = m.RemoveJob(id)
-	}
+	m.jobs.Range(func(key string, value *Job) bool {
+		_ = m.RemoveJob(key)
+		return true
+	})
 }
 
 // RunJob 根据 id 运行 Job
 func (m *Manager) RunJob(id string) error {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if job, found := m.jobs[id]; found {
-		go job.Left().Run()
+	if job, found := m.jobs.Load(id); found {
+		ctx, cancel := context.WithCancel(context.Background())
+		job.cancel = cancel
+		go job.waper.Run(ctx)
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// JobNames 获取所有 Job Name
-func (m *Manager) JobNames() []string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	var names []string
-	for id, _ := range m.jobs {
-		names = append(names, id)
+// StopJob 停止某个 Job
+func (m *Manager) StopJob(id string) error {
+	if job, found := m.jobs.Load(id); found {
+		job.cancel()
+		job.cancel = nil
+		return nil
 	}
-	return names
+	return fmt.Errorf("job %s 不存在", id)
 }
 
 // JobsData 获取 []Job
 func (m *Manager) JobsData() []config.Job {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	var jobs []config.Job
-	for _, v := range m.jobs {
-		jobs = append(jobs, v.Right())
-	}
+	m.jobs.Range(func(key string, value *Job) bool {
+		jobs = append(jobs, *value.conf)
+		return true
+	})
 	return jobs
 }

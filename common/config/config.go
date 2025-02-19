@@ -23,20 +23,16 @@ type Provider struct {
 }
 
 type Job struct {
-	Id       string   `yaml:"id" json:"id"`
-	Type     string   `yaml:"type" json:"type"`
-	Symbol   Symbol   `yaml:"symbol" json:"symbol"`
-	Bar      string   `yaml:"bar" json:"bar"`
-	Amount   Amount   `yaml:"amount" json:"amount"`
-	Provider Provider `yaml:"provider" json:"provider"`
+	Type        string   `yaml:"type" json:"type"`
+	Symbol      Symbol   `yaml:"symbol" json:"symbol"`
+	Bar         string   `yaml:"bar" json:"bar"`
+	Amount      Amount   `yaml:"amount" json:"amount"`
+	Provider    Provider `yaml:"provider" json:"provider"`
+	Subscribers []int64  `yaml:"subscribers,omitempty" json:"subscribers,omitempty"`
 }
 
-// GetId 如果 id 不存在，则生成默认的 Id
 func (j *Job) GetId() string {
-	if j.Id == "" {
-		return j.Provider.Name + "_" + j.Type + "_" + j.Symbol.Base + j.Symbol.Quote + "_" + j.Bar
-	}
-	return j.Id
+	return j.Provider.Name + "_" + j.Type + "_" + j.Symbol.Base + j.Symbol.Quote + "_" + j.Bar
 }
 
 func (j *Job) Validate(skip ...string) error {

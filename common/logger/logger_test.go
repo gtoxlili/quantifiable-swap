@@ -18,20 +18,17 @@ func TestNewLogger(t *testing.T) {
 	logger := NewSwapLogger(testID, testProvider, testBar)
 	// Test error logging
 	testErr := errors.New("test error")
-	logger.PrintError(testErr)
+	logger.PrintError(testErr, false)
 
 	// Test WAP stop
 	logger.PrintWAPStop()
-
-	// Test update price fail
-	logger.PrintUpdatePriceFail(testErr)
 
 	// Test indicator log
 	testTime := time.Now()
 	logger.PrintIndicatorLog(testTime, 50000.0, 90.5, 49000.0, 48000.0, "RSI")
 
 	// Test error with time
-	logger.PrintErrorWithTime(testTime, testErr)
+	logger.PrintErrorWithTime(testTime, testErr, false)
 
 	// Test buy operations
 	logger.PrintBuyFail(testErr)
