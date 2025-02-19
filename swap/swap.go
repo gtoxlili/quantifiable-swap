@@ -17,6 +17,7 @@ import (
 type IIndicatorWaper interface {
 	Run()
 	Stop()
+	//WithNotifyID(notifyID int64)
 	RunWithCustomPeriod(period int)
 }
 
@@ -89,6 +90,10 @@ func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, s
 	ind.log = logger.NewSwapLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
 	return ind
 }
+
+//func (r *IndicatorWaper) WithNotifyID(notifyID int64) {
+//	r.log = r.log.WithNotifyID(notifyID)
+//}
 
 func (r *IndicatorWaper) Stop() {
 	close(r.stopChan)

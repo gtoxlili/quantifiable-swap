@@ -17,7 +17,9 @@ type SessionState struct {
 // BotHandler orchestrates how the bot processes updates (messages, callbacks, etc.).
 // It manages user sessions and delegates work to other handlers.
 type BotHandler struct {
-	BotAPI     *tgApi.BotAPI
+	BotAPI *tgApi.BotAPI
+	// 所有者的 Id
+	OwnerID    int64
 	JobManager job.IManager
 	Sessions   map[int64]*SessionState
 	Logger     zerolog.Logger

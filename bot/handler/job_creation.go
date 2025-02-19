@@ -18,6 +18,15 @@ func (handler *BotHandler) initializeJobCreation(chatID int64) {
 	}
 }
 
+//// 游客只能创建 notify 类型的任务
+//func (handler *BotHandler) initializeJobCreationForGuest(chatID int64) {
+//	handler.Sessions[chatID] = &SessionState{
+//		CurrentAction: "action_create_job",
+//		TempJob:       &config.Job{Type: "notify", Creator: chatID},
+//		Step:          1,
+//	}
+//}
+
 // continueJobCreation advances the job creation flow based on the current step.
 func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *SessionState) {
 	chatID := msg.Chat.ID

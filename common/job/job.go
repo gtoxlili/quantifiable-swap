@@ -64,14 +64,17 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 		return "", fmt.Errorf("非法的 K 线周期: %s", j.Bar)
 	}
 
+	var waper swap.IIndicatorWaper
 	switch j.Type {
 	case "notify":
-		m.jobs[j.GetId()] = lo.NewEither(swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov), j)
+		waper = swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov)
 	case "swap":
-		m.jobs[j.GetId()] = lo.NewEither(swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov), j)
+		waper = swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
 	default:
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}
+
+	m.jobs[j.GetId()] = lo.NewEither(waper, j)
 
 	return j.GetId(), nil
 }
