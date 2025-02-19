@@ -14,6 +14,12 @@ func (handler *BotHandler) sendMessage(chatID int64, text string) {
 	handler.BotAPI.Send(msg)
 }
 
+func (handler *BotHandler) sendEditMessage(chatID int64, messageID int, text string) {
+	msg := tgApi.NewEditMessageText(chatID, messageID, text)
+	msg.ParseMode = tgApi.ModeHTML
+	handler.BotAPI.Send(msg)
+}
+
 // 带 ReplyMarkup
 func (handler *BotHandler) sendMessageWithMarkup(chatID int64, text string, markup tgApi.InlineKeyboardMarkup) {
 	msg := tgApi.NewMessage(chatID, text)

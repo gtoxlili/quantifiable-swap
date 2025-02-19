@@ -39,13 +39,13 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 func (handler *BotHandler) handleCancel(query *tgApi.CallbackQuery) {
 	if strings.HasSuffix(query.Data, "job_creation") {
 		handler.Sessions.Delete(query.Message.Chat.ID)
-		handler.sendMessage(query.Message.Chat.ID, "🚫 <b>任务创建已取消</b>")
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "🚫 <b>任务创建已取消</b>")
 		return
 	} else if strings.HasSuffix(query.Data, "delete") {
-		handler.sendMessage(query.Message.Chat.ID, "🚫 <b>任务释放已取消</b>")
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "🚫 <b>任务释放已取消</b>")
 		return
 	} else if strings.HasSuffix(query.Data, "manage") {
-		handler.sendMessage(query.Message.Chat.ID, "🚫 <b>任务状态变更已取消</b>")
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "🚫 <b>任务状态变更已取消</b>")
 		return
 	}
 }
