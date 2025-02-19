@@ -148,7 +148,10 @@ func (m *Manager) RunJob(id string) error {
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		job.cancel = cancel
-		go job.waper.Run(ctx)
+		go func() {
+			job.waper.Run(ctx)
+			_ = m.StopJob(id)
+		}()
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)

@@ -31,7 +31,6 @@ func init() {
 	var outSet []io.Writer
 	outSet = append(outSet, console.NewConsoleWriter(os.Stdout, "15:04:05"))
 
-	// todo: 待修改
 	if bot.Bot != nil {
 		outSet = append(outSet, tglog.NewBotWriter(bot.Bot))
 	}
