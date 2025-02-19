@@ -21,7 +21,9 @@ type IManager interface {
 	RemoveAll()
 	RunJob(id string) error
 	StopJob(id string) error
-	JobsData() []config.Job
+	JobsData(subId int64) []config.Job
+	JobsAllData() []config.Job
+	IsRunning(id string) bool
 }
 
 // Job Map Value 的结构
@@ -130,7 +132,7 @@ func (m *Manager) RemoveSubscriber(id string, chatID int64) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// RemoveAll 终止所有 Job
+// RemoveAll 删除所有 Job
 func (m *Manager) RemoveAll() {
 	m.jobs.Range(func(key string, value *Job) bool {
 		_ = m.RemoveJob(key)
@@ -141,6 +143,9 @@ func (m *Manager) RemoveAll() {
 // RunJob 根据 id 运行 Job
 func (m *Manager) RunJob(id string) error {
 	if job, found := m.jobs.Load(id); found {
+		if job.cancel != nil {
+			return fmt.Errorf("job %s 已在运行", id)
+		}
 		ctx, cancel := context.WithCancel(context.Background())
 		job.cancel = cancel
 		go job.waper.Run(ctx)
@@ -152,6 +157,9 @@ func (m *Manager) RunJob(id string) error {
 // StopJob 停止某个 Job
 func (m *Manager) StopJob(id string) error {
 	if job, found := m.jobs.Load(id); found {
+		if job.cancel == nil {
+			return fmt.Errorf("job %s 未在运行", id)
+		}
 		job.cancel()
 		job.cancel = nil
 		return nil
@@ -159,12 +167,32 @@ func (m *Manager) StopJob(id string) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// JobsData 获取 []Job
-func (m *Manager) JobsData() []config.Job {
+// JobsAllData 获取 所有 []Job
+func (m *Manager) JobsAllData() []config.Job {
 	var jobs []config.Job
 	m.jobs.Range(func(key string, value *Job) bool {
 		jobs = append(jobs, *value.conf)
 		return true
 	})
 	return jobs
+}
+
+// JobsData 获取某个订阅者的 []Job
+func (m *Manager) JobsData(subId int64) []config.Job {
+	var jobs []config.Job
+	m.jobs.Range(func(key string, value *Job) bool {
+		if slices.Contains(value.conf.Subscribers, subId) {
+			jobs = append(jobs, *value.conf)
+		}
+		return true
+	})
+	return jobs
+}
+
+// IsRunning 判断某个 Job 是否在运行
+func (m *Manager) IsRunning(id string) bool {
+	if job, found := m.jobs.Load(id); found {
+		return job.cancel != nil
+	}
+	return false
 }

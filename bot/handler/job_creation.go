@@ -171,3 +171,19 @@ func (handler *BotHandler) promptBarInterval(chatID int64) {
 		"• <code>4h</code>  - 4小时\n"+
 		"• <code>1d</code>  - 1天")
 }
+
+// handleJobCreationConfirmation processes the user's confirmation to create a job.
+func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQuery) {
+	session, ok := handler.Sessions.Load(query.Message.Chat.ID)
+	if !ok {
+		handler.sendMessage(query.Message.Chat.ID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
+		return
+	}
+	if _, err := handler.JobManager.AddJob(*session.TempJob); err != nil {
+		handler.sendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
+		return
+	}
+	_ = handler.JobManager.RunJob(session.TempJob.GetId())
+	handler.sendMessage(query.Message.Chat.ID, "✅ <b>任务创建成功</b>")
+	handler.Sessions.Delete(query.Message.Chat.ID)
+}

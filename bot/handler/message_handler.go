@@ -31,7 +31,7 @@ func (handler *BotHandler) handleCommand(msg *tgApi.Message) {
 	chatID := msg.Chat.ID
 	cmd := msg.Command()
 	switch cmd {
-	case "addjob":
+	case "add":
 		if handler.OwnerID != chatID {
 			handler.initializeJobCreationForGuest(chatID)
 			handler.sendMessage(chatID, "💱 <b>输入交易对</b>\n\n格式：<code>BASE/QUOTE</code>")
@@ -39,8 +39,11 @@ func (handler *BotHandler) handleCommand(msg *tgApi.Message) {
 		}
 		handler.initializeJobCreation(chatID)
 		handler.promptJobType(chatID)
-	case "removejob":
+	case "remove":
 		handler.promptJobRemoval(chatID)
+	// 管理 （暂停或者启动）
+	case "manage":
+		handler.promptJobManage(chatID)
 	}
 }
 

@@ -95,7 +95,7 @@ func (app *App) initBot() {
 func (app *App) cleanup(sig os.Signal) {
 	app.log.Info().Str("Signal", sig.String()).Msg("正在清理资源...")
 
-	if err := config.SaveConfig(app.configPath, app.manager.JobsData()); err != nil {
+	if err := config.SaveConfig(app.configPath, app.manager.JobsAllData()); err != nil {
 		app.log.Error().Err(err).Msg("保存配置文件失败")
 	}
 

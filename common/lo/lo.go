@@ -48,23 +48,6 @@ func MapConcurrent[T any, R any](collection []T, iteratee func(item T, index int
 	return result
 }
 
-type Either[L any, R any] struct {
-	l L
-	r R
-}
-
-func NewEither[L any, R any](l L, r R) Either[L, R] {
-	return Either[L, R]{l: l, r: r}
-}
-
-func (e Either[L, R]) Left() L {
-	return e.l
-}
-
-func (e Either[L, R]) Right() R {
-	return e.r
-}
-
 // Delete 从列表中删除元素
 func Delete[T comparable](s []T, i T) []T {
 	for idx, v := range s {
