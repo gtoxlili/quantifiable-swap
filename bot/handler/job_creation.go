@@ -23,6 +23,8 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 	chatID := msg.Chat.ID
 
 	switch session.Step {
+	case 0:
+		handler.promptJobType(chatID)
 	case 1:
 		base, quote, err := validateSymbolInput(msg.Text)
 		if err != nil {

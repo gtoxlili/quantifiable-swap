@@ -23,8 +23,8 @@ func (handler *BotHandler) StartDispatching() {
 
 	updates := handler.BotAPI.GetUpdatesChan(updateConfig)
 	for update := range updates {
+		handler.recordMessageLog(update)
 		if update.Message != nil {
-			handler.recordMessageLog(update.Message)
 			go handler.processIncomingMessage(update.Message)
 		} else if update.CallbackQuery != nil {
 			go handler.processCallbackQuery(update.CallbackQuery)

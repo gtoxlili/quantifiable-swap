@@ -38,11 +38,39 @@ func (handler *BotHandler) handleCommand(msg *tgApi.Message) {
 	}
 }
 
-// recordMessageLog logs basic information about the incoming message.
-func (handler *BotHandler) recordMessageLog(msg *tgApi.Message) {
-	handler.Logger.Debug().
-		Int64("UserID", msg.From.ID).
-		Int64("ChatID", msg.Chat.ID).
-		Str("Text", msg.Text).
-		Msg("Received message")
+// recordMessageLog logs detailed information about the incoming update.
+func (handler *BotHandler) recordMessageLog(u tgApi.Update) {
+	log := handler.Logger.Debug()
+
+	if u.Message != nil {
+		log.Int64("UserID", u.Message.From.ID).
+			Int64("ChatID", u.Message.Chat.ID).
+			Str("Text", u.Message.Text).
+			Str("Username", u.Message.From.UserName).
+			Int("MessageID", u.Message.MessageID).
+			Str("Type", "message")
+
+		if u.Message.IsCommand() {
+			log.Str("Command", u.Message.Command()).
+				Str("CommandArgs", u.Message.CommandArguments())
+		}
+
+		if u.Message.ReplyToMessage != nil {
+			log.Int("ReplyToMessageID", u.Message.ReplyToMessage.MessageID).
+				Int64("ReplyToUserID", u.Message.ReplyToMessage.From.ID).
+				Str("ReplyToUsername", u.Message.ReplyToMessage.From.UserName).
+				Str("ReplyToText", u.Message.ReplyToMessage.Text)
+		}
+	}
+
+	if u.CallbackQuery != nil {
+		log.Int64("UserID", u.CallbackQuery.From.ID).
+			Int64("ChatID", u.CallbackQuery.Message.Chat.ID).
+			Str("CallbackData", u.CallbackQuery.Data).
+			Str("Username", u.CallbackQuery.From.UserName).
+			Int("MessageID", u.CallbackQuery.Message.MessageID).
+			Str("Type", "callback")
+	}
+
+	log.Send()
 }
