@@ -90,7 +90,7 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 
 	// 鲁棒性处理
 	if len(j.Subscribers) == 0 {
-		if err == nil {
+		if constants.TGChatID != 0 {
 			j.Subscribers = []int64{constants.TGChatID}
 		}
 	}

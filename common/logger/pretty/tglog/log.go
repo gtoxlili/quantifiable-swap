@@ -217,7 +217,10 @@ func getSubscribers(data pretty.LogData) []int64 {
 		}
 		return ids
 	}
-	return []int64{constants.TGChatID}
+	if constants.TGChatID != 0 {
+		return []int64{constants.TGChatID}
+	}
+	return nil
 }
 
 // 打印额外字段
