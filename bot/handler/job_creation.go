@@ -55,7 +55,7 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		handler.promptBarInterval(chatID)
 	case 5:
 		if _, err := time.ParseDuration(msg.Text); err != nil {
-			handler.sendMessage(chatID, "无效的时间间隔")
+			handler.sendMessage(chatID, "❌ <b>时间格式错误</b>\n\n<i>请输入有效的时间间隔</i>")
 			return
 		}
 		session.TempJob.Bar = msg.Text
@@ -66,32 +66,29 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 
 // showJobPreview displays a summary of the job to confirm creation.
 func (handler *BotHandler) showJobPreview(chatID int64, job *config.Job) {
-	msgText := fmt.Sprintf("🔄 任务预览:\n"+
-		"ID: %s\n类型: %s\n交易对: %s/%s\n数量: 买 %.4f / 卖 %.4f\n"+
-		"数据提供商: %s\n交易提供商: %s\n采样间隔: %s\n\n确定创建任务？",
-		job.GetId(),
-		job.Type,
-		job.Symbol.Base,
-		job.Symbol.Quote,
-		job.Amount.Buy,
-		job.Amount.Sell,
-		job.Provider.Name,
-		job.Provider.InjectOrder,
-		job.Bar,
+	msgText := fmt.Sprintf(
+		"📋 <b>任务预览</b>\n\n"+
+			"🔑 ID: <code>%s</code>\n"+
+			"📊 类型: <code>%s</code>\n"+
+			"💱 交易对: <code>%s/%s</code>\n"+
+			"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
+			"📡 数据提供商: <code>%s</code>\n"+
+			"🏛️ 交易提供商: <code>%s</code>\n"+
+			"⏱️ 采样间隔: <code>%s</code>\n\n"+
+			"⚠️ <i>请确认以上信息</i>",
+		job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+		job.Amount.Buy, job.Amount.Sell, job.Provider.Name,
+		job.Provider.InjectOrder, job.Bar,
 	)
-
-	message := tgApi.NewMessage(chatID, msgText)
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData("确定", "confirm_job_creation"),
 			tgApi.NewInlineKeyboardButtonData("取消", "cancel_job_creation"),
 		),
 	)
-	message.ReplyMarkup = keyboard
-	handler.BotAPI.Send(message)
+	handler.sendMessageWithMarkup(chatID, msgText, keyboard)
 }
 
-// promptJobType asks the user to choose a job type (e.g., SWAP or NOTIFY).
 func (handler *BotHandler) promptJobType(chatID int64) {
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
@@ -99,13 +96,9 @@ func (handler *BotHandler) promptJobType(chatID int64) {
 			tgApi.NewInlineKeyboardButtonData("NOTIFY", "type_notify"),
 		),
 	)
-
-	message := tgApi.NewMessage(chatID, "请选择任务类型:")
-	message.ReplyMarkup = keyboard
-	handler.BotAPI.Send(message)
+	handler.sendMessageWithMarkup(chatID, "📝 <b>选择任务类型</b>", keyboard)
 }
 
-// handleJobTypeSelection captures the selected job type.
 func (handler *BotHandler) handleJobTypeSelection(query *tgApi.CallbackQuery) {
 	session := handler.Sessions[query.Message.Chat.ID]
 	if session == nil {
@@ -114,20 +107,26 @@ func (handler *BotHandler) handleJobTypeSelection(query *tgApi.CallbackQuery) {
 	jobType := strings.TrimPrefix(query.Data, "type_")
 	session.TempJob.Type = jobType
 	session.Step++
-	handler.sendMessage(query.Message.Chat.ID, "请输入交易对（格式：BASE/QUOTE）:")
+	handler.sendMessage(query.Message.Chat.ID, "💱 <b>输入交易对</b>\n\n格式：<code>BASE/QUOTE</code>")
 }
 
-// promptAmount asks the user for buy/sell amounts.
 func (handler *BotHandler) promptAmount(chatID int64) {
-	handler.sendMessage(chatID, "请输入交易数量（买入数量/卖出数量）:")
+	handler.sendMessage(chatID, "💰 <b>输入交易数量</b>\n\n格式：<code>买入数量/卖出数量</code>")
 }
 
-// promptProvider asks the user for a data or trade provider.
 func (handler *BotHandler) promptProvider(title string, chatID int64) {
-	handler.sendMessage(chatID, "请选择"+title+"提供商:")
+	icon := map[string]string{
+		"数据": "📡",
+		"交易": "🏛️",
+	}[title]
+	handler.sendMessage(chatID, fmt.Sprintf("%s <b>选择%s提供商</b>", icon, title))
 }
 
-// promptBarInterval asks the user for the data sampling interval (e.g., 15m, 1h, etc.).
 func (handler *BotHandler) promptBarInterval(chatID int64) {
-	handler.sendMessage(chatID, "请输入数据采样的时间间隔（如：15m, 1h, 4h, 1d）:")
+	handler.sendMessage(chatID, "⏱️ <b>设置采样间隔</b>\n\n"+
+		"支持的格式：\n"+
+		"• <code>15m</code> - 15分钟\n"+
+		"• <code>1h</code>  - 1小时\n"+
+		"• <code>4h</code>  - 4小时\n"+
+		"• <code>1d</code>  - 1天")
 }
