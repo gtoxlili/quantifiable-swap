@@ -79,7 +79,7 @@ func (app *App) initJobs(jobs []config.Job) error {
 
 		app.log.Info().
 			Bytes("任务配置", jobConfig).
-			Str("jobID", id).
+			Str("JobID", id).
 			Msg("任务启动成功")
 	}
 	return nil
@@ -93,7 +93,7 @@ func (app *App) initBot() {
 
 // cleanup gracefully shuts down running services, saves configuration, and logs termination.
 func (app *App) cleanup(sig os.Signal) {
-	app.log.Info().Str("signal", sig.String()).Msg("正在清理资源...")
+	app.log.Info().Str("Signal", sig.String()).Msg("正在清理资源...")
 
 	if err := config.SaveConfig(app.configPath, app.manager.JobsData()); err != nil {
 		app.log.Error().Err(err).Msg("保存配置文件失败")
