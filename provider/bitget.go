@@ -31,8 +31,8 @@ func NewBitGet() Provider {
 	}
 }
 
-// InjectOrderFunc 注入下单方法
-func (b *BitGetProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+// WithOrderInjection 注入下单方法
+func (b *BitGetProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	newProvider := *b
 	newProvider.orderFunc = orderFunc
 	return &newProvider
@@ -42,16 +42,16 @@ func (b *BitGetProvider) Name() string {
 	return "BitGet"
 }
 
-func (b *BitGetProvider) MaxHistoryLimit() int {
+func (b *BitGetProvider) GetMaxHistoryLimit() int {
 	return 200
 }
 
-func (b *BitGetProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+func (b *BitGetProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
+	url := fmt.Sprintf(b.historyURL, b.encodeInstrumentID(base, quote), limit)
 	if afterTime != "" {
 		url = url + "&endTime=" + afterTime
 	} else {
@@ -80,10 +80,10 @@ func (b *BitGetProvider) GetHistoryTpRes(base, quote string, afterTime string, l
 		return nil, fmt.Errorf("接口返回错误：%s", response.Msg)
 	}
 	candles := response.Data
-	var res []*TpRes
+	var res []*PriceTick
 	for i := 0; i < len(candles); i++ {
 		candle := candles[i]
-		res = append(res, &TpRes{
+		res = append(res, &PriceTick{
 			candle[0], // 时间
 			candle[4], // 价格
 		})
@@ -91,12 +91,12 @@ func (b *BitGetProvider) GetHistoryTpRes(base, quote string, afterTime string, l
 	return res, nil
 }
 
-func (b *BitGetProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+func (b *BitGetProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstrumentID(base, quote)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -119,19 +119,19 @@ func (b *BitGetProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	if response.Code != "00000" {
 		return nil, fmt.Errorf("接口返回异常：%s", response.Msg)
 	}
-	return &TpRes{
+	return &PriceTick{
 		response.Data[0].Ts,
 		response.Data[0].LastPr,
 	}, nil
 }
 
-func (b *BitGetProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
+func (b *BitGetProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc == nil {
 		panic("implement me")
 	}
 	return b.orderFunc(base, quote, side, size)
 }
 
-func (b *BitGetProvider) encodeInstId(base, quote string) string {
+func (b *BitGetProvider) encodeInstrumentID(base, quote string) string {
 	return strings.ToUpper(base) + strings.ToUpper(quote)
 }

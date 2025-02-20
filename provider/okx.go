@@ -42,14 +42,14 @@ func NewOkx() Provider {
 	}
 }
 
-// InjectOrderFunc 注入下单方法
-func (o *OkxProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+// WithOrderInjection 注入下单方法
+func (o *OkxProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	newProvider := *o
 	newProvider.orderFunc = orderFunc
 	return &newProvider
 }
 
-func (o *OkxProvider) MaxHistoryLimit() int {
+func (o *OkxProvider) GetMaxHistoryLimit() int {
 	return 100
 }
 
@@ -57,12 +57,12 @@ func (o *OkxProvider) Name() string {
 	return "OKX"
 }
 
-func (o *OkxProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+func (o *OkxProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	if err := o.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)
 	}
 
-	url := fmt.Sprintf(o.historyURL, o.encodeInstId(base, quote), limit)
+	url := fmt.Sprintf(o.historyURL, o.encodeInstrumentID(base, quote), limit)
 	if afterTime != "" {
 		url = url + "&after=" + afterTime
 	}
@@ -88,10 +88,10 @@ func (o *OkxProvider) GetHistoryTpRes(base, quote string, afterTime string, limi
 		return nil, fmt.Errorf("接口返回错误：%s", response.Msg)
 	}
 	candles := response.Data
-	var res []*TpRes
+	var res []*PriceTick
 	for i := 0; i < len(candles); i++ {
 		candle := candles[i]
-		res = append(res, &TpRes{
+		res = append(res, &PriceTick{
 			candle[0], // 时间
 			candle[4], // 价格
 		})
@@ -99,12 +99,12 @@ func (o *OkxProvider) GetHistoryTpRes(base, quote string, afterTime string, limi
 	return res, nil
 }
 
-func (o *OkxProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+func (o *OkxProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 	if err := o.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf(o.latestPriceURL, o.encodeInstId(base, quote)), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(o.latestPriceURL, o.encodeInstrumentID(base, quote)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (o *OkxProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	if response.Code != "0" {
 		return nil, fmt.Errorf("接口返回异常：%s", response.Msg)
 	}
-	return &TpRes{
+	return &PriceTick{
 		response.Data[0].Ts,
 		response.Data[0].IdxPx,
 	}, nil
@@ -142,7 +142,7 @@ type OkxOrderRequest struct {
 	TgtCcy  string `json:"tgtCcy,omitempty"` // 目标币种，市价买单时指基础币种（默认单位为 base_ccy）
 }
 
-func (o *OkxProvider) MarketOrder(base, quote, side string, sz float64) (string, error) {
+func (o *OkxProvider) ExecuteMarketOrder(base, quote, side string, sz float64) (string, error) {
 
 	if o.orderFunc != nil {
 		return o.orderFunc(base, quote, side, sz)
@@ -150,7 +150,7 @@ func (o *OkxProvider) MarketOrder(base, quote, side string, sz float64) (string,
 
 	// 构造请求参数，市价单时 ordType 固定为 "market"
 	reqPayload := OkxOrderRequest{
-		InstId:  o.encodeInstId(base, quote),
+		InstId:  o.encodeInstrumentID(base, quote),
 		TdMode:  "cash",
 		Side:    strings.ToLower(side),
 		OrdType: "market",
@@ -225,6 +225,6 @@ func (o *OkxProvider) fetchOkxAuthRequest(method, requestPath string, body []byt
 	return resp.Body, nil
 }
 
-func (o *OkxProvider) encodeInstId(base, quote string) string {
+func (o *OkxProvider) encodeInstrumentID(base, quote string) string {
 	return strings.ToUpper(base) + "-" + strings.ToUpper(quote)
 }

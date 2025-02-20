@@ -41,19 +41,19 @@ func NewByBit() Provider {
 	}
 }
 
-// InjectOrderFunc 注入下单方法
-func (b *ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+// WithOrderInjection 注入下单方法
+func (b *ByBitProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	newProvider := *b
 	newProvider.orderFunc = orderFunc
 	return &newProvider
 }
 
-func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+func (b *ByBitProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
+	url := fmt.Sprintf(b.historyURL, b.encodeInstrumentID(base, quote), limit)
 	if afterTime != "" {
 		// 减一分钟
 		tmpAfterTime, _ := strconv.ParseInt(afterTime, 10, 64)
@@ -84,10 +84,10 @@ func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, li
 	if response.RetCode != 0 {
 		return nil, fmt.Errorf("retCode: %d, retMsg: %s", response.RetCode, response.RetMsg)
 	}
-	var res []*TpRes
+	var res []*PriceTick
 	for i := 0; i < len(response.Result.List); i++ {
 		candle := response.Result.List[i]
-		res = append(res, &TpRes{
+		res = append(res, &PriceTick{
 			Timestamp: candle[0], // 时间
 			Price:     candle[4], // 价格
 		})
@@ -95,12 +95,12 @@ func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, li
 	return res, nil
 }
 
-func (b *ByBitProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+func (b *ByBitProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstrumentID(base, quote)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (b *ByBitProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	if len(response.Result.List) == 0 {
 		return nil, fmt.Errorf("empty list")
 	}
-	return &TpRes{
+	return &PriceTick{
 		Timestamp: strconv.FormatInt(response.Time, 10),
 		Price:     response.Result.List[0].LastPrice,
 	}, nil
@@ -144,14 +144,14 @@ type ByBitOrderRequest struct {
 	MarketUnit  string `json:"marketUnit"`
 }
 
-func (b *ByBitProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
+func (b *ByBitProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc != nil {
 		return b.orderFunc(base, quote, side, size)
 	}
 
 	reqPayload := ByBitOrderRequest{
 		Category:    "spot",
-		Symbol:      b.encodeInstId(base, quote),
+		Symbol:      b.encodeInstrumentID(base, quote),
 		Side:        strings.Title(side),
 		OrderType:   "Market",
 		Qty:         fmt.Sprintf("%f", size),
@@ -185,7 +185,7 @@ func (b *ByBitProvider) MarketOrder(base, quote string, side string, size float6
 	return respData.Result.OrderId, nil
 }
 
-func (b *ByBitProvider) MaxHistoryLimit() int {
+func (b *ByBitProvider) GetMaxHistoryLimit() int {
 	return 1000
 }
 
@@ -193,7 +193,7 @@ func (b *ByBitProvider) Name() string {
 	return "ByBit"
 }
 
-func (b *ByBitProvider) encodeInstId(base, quote string) string {
+func (b *ByBitProvider) encodeInstrumentID(base, quote string) string {
 	return strings.ToUpper(base) + strings.ToUpper(quote)
 }
 

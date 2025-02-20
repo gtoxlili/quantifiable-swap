@@ -70,7 +70,7 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		if injectProv == nil {
 			return "", fmt.Errorf("未知的 InjectOrder Provider: %s", j.Provider.InjectOrder)
 		}
-		prov = prov.InjectOrderFunc(injectProv.MarketOrder)
+		prov = prov.WithOrderInjection(injectProv.ExecuteMarketOrder)
 	}
 
 	bar, err := time.ParseDuration(j.Bar)

@@ -8,7 +8,7 @@ import (
 
 type PolymericProvider struct {
 	members      []Provider
-	strategyFunc func([]*TpRes) *TpRes
+	strategyFunc func([]*PriceTick) *PriceTick
 
 	// 下单方法
 	orderFunc func(base, quote, side string, size float64) (string, error)
@@ -21,27 +21,27 @@ func NewPolymericProvider(members ...Provider) Provider {
 	}
 }
 
-func NewPolymericProviderWithStrategy(strategy func([]*TpRes) *TpRes, members ...Provider) Provider {
+func NewPolymericProviderWithStrategy(strategy func([]*PriceTick) *PriceTick, members ...Provider) Provider {
 	return &PolymericProvider{
 		members:      members,
 		strategyFunc: strategy,
 	}
 }
 
-func (p *PolymericProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+func (p *PolymericProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	newProvider := *p
 	newProvider.orderFunc = orderFunc
 	return &newProvider
 }
 
-func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+func (p *PolymericProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	type concurrencyResult struct {
-		res []*TpRes
+		res []*PriceTick
 		err error
 	}
 
 	results := lo.MapConcurrent(p.members, func(member Provider, _ int) concurrencyResult {
-		tpRes, e := member.GetHistoryTpRes(base, quote, afterTime, limit)
+		tpRes, e := member.GetHistoricalData(base, quote, afterTime, limit)
 		if e != nil {
 			return concurrencyResult{
 				err: fmt.Errorf("member %s: %v", member.Name(), e),
@@ -50,7 +50,7 @@ func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string
 		return concurrencyResult{res: tpRes}
 	})
 
-	var allRes [][]*TpRes
+	var allRes [][]*PriceTick
 	for _, r := range results {
 		if r.err != nil {
 			return nil, r.err
@@ -58,10 +58,10 @@ func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string
 		allRes = append(allRes, r.res)
 	}
 
-	var result []*TpRes
+	var result []*PriceTick
 	minLen := lo.MinLen(allRes)
 	for i := 0; i < minLen; i++ {
-		var tpResGroup []*TpRes
+		var tpResGroup []*PriceTick
 		for j := 0; j < len(allRes); j++ {
 			tpResGroup = append(tpResGroup, allRes[j][i])
 		}
@@ -71,14 +71,14 @@ func (p *PolymericProvider) GetHistoryTpRes(base, quote string, afterTime string
 	return result, nil
 }
 
-func (p *PolymericProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+func (p *PolymericProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 	type result struct {
-		res *TpRes
+		res *PriceTick
 		err error
 	}
 
 	results := lo.MapConcurrent(p.members, func(member Provider, _ int) result {
-		tpRes, e := member.GetLatestTpRes(base, quote)
+		tpRes, e := member.GetLatestData(base, quote)
 		if e != nil {
 			return result{
 				err: fmt.Errorf("member %s: %v", member.Name(), e),
@@ -87,7 +87,7 @@ func (p *PolymericProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 		return result{res: tpRes}
 	})
 
-	var finalRes []*TpRes
+	var finalRes []*PriceTick
 	for _, res := range results {
 		if res.err != nil {
 			return nil, res.err
@@ -97,17 +97,17 @@ func (p *PolymericProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	return p.strategyFunc(finalRes), nil
 }
 
-func (p *PolymericProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
+func (p *PolymericProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
 	if p.orderFunc == nil {
 		panic("implement me")
 	}
 	return p.orderFunc(base, quote, side, size)
 }
 
-func (p *PolymericProvider) MaxHistoryLimit() int {
+func (p *PolymericProvider) GetMaxHistoryLimit() int {
 	var limArr []int
 	for _, member := range p.members {
-		limArr = append(limArr, member.MaxHistoryLimit())
+		limArr = append(limArr, member.GetMaxHistoryLimit())
 	}
 	return lo.Min(limArr...)
 }
@@ -120,12 +120,12 @@ func (p *PolymericProvider) Name() string {
 	return name[:len(name)-1]
 }
 
-func (p *PolymericProvider) encodeInstId(_, _ string) string {
+func (p *PolymericProvider) encodeInstrumentID(_, _ string) string {
 	panic("undefined behavior")
 }
 
 // 默认的策略函数 （AVG）
-func defaultStrategy(tpResGroup []*TpRes) *TpRes {
+func defaultStrategy(tpResGroup []*PriceTick) *PriceTick {
 	var sum float64
 	for _, tpRes := range tpResGroup {
 		price, e := strconv.ParseFloat(tpRes.Price, 64)
@@ -135,7 +135,7 @@ func defaultStrategy(tpResGroup []*TpRes) *TpRes {
 		sum += price
 	}
 	avg := sum / float64(len(tpResGroup))
-	return &TpRes{
+	return &PriceTick{
 		Timestamp: tpResGroup[0].Timestamp,
 		Price:     fmt.Sprintf("%f", avg),
 	}

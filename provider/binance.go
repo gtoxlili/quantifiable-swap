@@ -34,8 +34,8 @@ func NewBinance() Provider {
 	}
 }
 
-// InjectOrderFunc creates a new BinanceProvider instance with the provided order function
-func (b *BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+// WithOrderInjection creates a new BinanceProvider instance with the provided order function
+func (b *BinanceProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
 	newProvider := *b
 	newProvider.orderFunc = orderFunc
 	return &newProvider
@@ -45,16 +45,16 @@ func (b *BinanceProvider) Name() string {
 	return "Binance"
 }
 
-func (b *BinanceProvider) MaxHistoryLimit() int {
+func (b *BinanceProvider) GetMaxHistoryLimit() int {
 	return 1000
 }
 
-func (b *BinanceProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
+func (b *BinanceProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	url := fmt.Sprintf(b.historyURL, b.encodeInstId(base, quote), limit)
+	url := fmt.Sprintf(b.historyURL, b.encodeInstrumentID(base, quote), limit)
 
 	if afterTime != "" {
 		// 减一分钟
@@ -77,13 +77,13 @@ func (b *BinanceProvider) GetHistoryTpRes(base, quote string, afterTime string, 
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
-	var res []*TpRes
+	var res []*PriceTick
 	// 币安是按照时间升序排列的（最早的在前面），所以要倒序遍历
 	for i := len(response) - 1; i >= 0; i-- {
 		candle := response[i]
 		// float64
 		timestamp := strconv.FormatFloat(candle[0].(float64), 'f', -1, 64)
-		res = append(res, &TpRes{
+		res = append(res, &PriceTick{
 			Timestamp: timestamp,          // 时间
 			Price:     candle[4].(string), // 价格
 		})
@@ -92,12 +92,12 @@ func (b *BinanceProvider) GetHistoryTpRes(base, quote string, afterTime string, 
 	return res, nil
 }
 
-func (b *BinanceProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
+func (b *BinanceProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 	if err := b.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", b.Name(), err)
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstId(base, quote)), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(b.latestPriceURL, b.encodeInstrumentID(base, quote)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -113,19 +113,19 @@ func (b *BinanceProvider) GetLatestTpRes(base, quote string) (*TpRes, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
-	return &TpRes{
+	return &PriceTick{
 		Timestamp: fmt.Sprintf("%d", time.Now().UnixNano()/1e6),
 		Price:     response.Price,
 	}, nil
 }
 
-func (b *BinanceProvider) MarketOrder(base, quote string, side string, size float64) (string, error) {
+func (b *BinanceProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
 	if b.orderFunc == nil {
 		panic("implement me")
 	}
 	return b.orderFunc(base, quote, side, size)
 }
 
-func (b *BinanceProvider) encodeInstId(base, quote string) string {
+func (b *BinanceProvider) encodeInstrumentID(base, quote string) string {
 	return strings.ToUpper(base) + strings.ToUpper(quote)
 }

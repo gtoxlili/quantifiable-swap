@@ -174,7 +174,7 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "buy", r.buyAmount)
+				orderID, err := r.dataProvider.ExecuteMarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
 					r.log.PrintBuyFail(err)
 				} else {
@@ -190,7 +190,7 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.dataProvider.MarketOrder(r.base, r.quote, "sell", r.sellAmount)
+				orderID, err := r.dataProvider.ExecuteMarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
 					r.log.PrintSellFail(err)
 				} else {

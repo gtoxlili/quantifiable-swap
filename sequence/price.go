@@ -45,9 +45,9 @@ func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration
 func (ps *PriceSequence) initHistory(ctx context.Context) error {
 	// 请求历史数据 (bar * maxLen) (因为获取的时间精度是 1m 的，所以这里的 bar 如果是 15m，那么就是 15*maxLen)
 	aft := ""
-	var tmpCandles []*provider.TpRes
+	var tmpTicks []*provider.PriceTick
 
-	curLim := ps.dataProvider.MaxHistoryLimit()
+	curLim := ps.dataProvider.GetMaxHistoryLimit()
 	if curLim > ps.maxLen {
 		curLim = ps.maxLen
 	}
@@ -58,17 +58,17 @@ outer:
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			candles, err := ps.dataProvider.GetHistoryTpRes(ps.base, ps.quote, aft, curLim)
+			candles, err := ps.dataProvider.GetHistoricalData(ps.base, ps.quote, aft, curLim)
 			if err != nil {
 				return err
 			}
 			if len(candles) == 0 {
 				break outer
 			}
-			tmpCandles = append(tmpCandles, candles...)
-			if len(tmpCandles) >= ps.maxLen {
+			tmpTicks = append(tmpTicks, candles...)
+			if len(tmpTicks) >= ps.maxLen {
 				// 截掉后面多余的数据
-				tmpCandles = tmpCandles[:ps.maxLen]
+				tmpTicks = tmpTicks[:ps.maxLen]
 				break outer
 			}
 			aft = candles[len(candles)-1].Timestamp
@@ -76,9 +76,9 @@ outer:
 	}
 
 	// 逆序追加
-	for i := len(tmpCandles) - 1; i >= 0; i-- {
-		timestamp, _ := strconv.ParseInt(tmpCandles[i].Timestamp, 10, 64)
-		price, _ := strconv.ParseFloat(tmpCandles[i].Price, 64)
+	for i := len(tmpTicks) - 1; i >= 0; i-- {
+		timestamp, _ := strconv.ParseInt(tmpTicks[i].Timestamp, 10, 64)
+		price, _ := strconv.ParseFloat(tmpTicks[i].Price, 64)
 		// 因为后续更新逻辑中，传入的是「实时时间」，所以这里需要将时间滞后 Frequency
 		// 比如 15:02:00 的价格，应该作为 15:01:00 的收盘价
 		ps.append(price, time.Unix(timestamp/1000, 0).Add(Frequency))
@@ -96,12 +96,12 @@ func (ps *PriceSequence) Update(ctx context.Context) (*Candle[float64], error) {
 	if err := ps.delay(ctx); err != nil {
 		return nil, err
 	}
-	tpPair, err := ps.dataProvider.GetLatestTpRes(ps.base, ps.quote)
+	priceTick, err := ps.dataProvider.GetLatestData(ps.base, ps.quote)
 	if err != nil {
 		return nil, err
 	}
-	price, _ := strconv.ParseFloat(tpPair.Price, 64)
-	timestamp, _ := strconv.ParseInt(tpPair.Timestamp, 10, 64)
+	price, _ := strconv.ParseFloat(priceTick.Price, 64)
+	timestamp, _ := strconv.ParseInt(priceTick.Timestamp, 10, 64)
 	timeUnix := time.Unix(timestamp/1000, 0)
 	ps.append(price, timeUnix)
 	return &ps.timePrice[len(ps.timePrice)-1], nil
