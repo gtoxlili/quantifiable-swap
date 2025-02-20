@@ -7,6 +7,8 @@ import (
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"io"
 	"strings"
 )
@@ -94,7 +96,7 @@ func formatLogEntry(logData pretty.LogData) string {
 	} else {
 		b.WriteString("⚙️ <b>General</b>\n\n")
 		b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
-		b.WriteString(fmt.Sprintf("📌 日志级别: <code>%s</code>\n\n", strings.Title(logData["level"].(string))))
+		b.WriteString(fmt.Sprintf("📌 日志级别: <code>%s</code>\n\n", cases.Title(language.English).String(logData["level"].(string))))
 	}
 
 	// 处理不同日志级别

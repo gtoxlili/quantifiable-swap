@@ -9,6 +9,8 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"io"
 	"net/http"
 	"strconv"
@@ -152,7 +154,7 @@ func (b *ByBitProvider) ExecuteMarketOrder(base, quote string, side string, size
 	reqPayload := ByBitOrderRequest{
 		Category:    "spot",
 		Symbol:      b.encodeInstrumentID(base, quote),
-		Side:        strings.Title(side),
+		Side:        cases.Title(language.English).String(side),
 		OrderType:   "Market",
 		Qty:         fmt.Sprintf("%f", size),
 		TimeInForce: "IOC",
