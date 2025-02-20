@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
 	"strconv"
 	"strings"
 )
@@ -58,4 +60,56 @@ func validateAmountInput(input string) (float64, float64, error) {
 		return 0, 0, fmt.Errorf("❌ <b>数值错误</b>\n\n<i>交易数量必须大于0</i>")
 	}
 	return buyAmount, sellAmount, nil
+}
+
+func formatJobPreview(job config.Job) string {
+	var msgText string
+	baseFormat := "🔑 ID: <code>%s</code>\n" +
+		"📊 类型: <code>%s</code>\n" +
+		"💱 交易对: <code>%s/%s</code>\n" +
+		"%s" + // placeholder for type-specific info
+		"⏱️ 采样间隔: <code>%s</code>"
+
+	if job.Type == "notify" {
+		msgText = fmt.Sprintf(baseFormat,
+			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			fmt.Sprintf("📡 数据提供商: <code>%s</code>\n", job.Provider.Name),
+			job.Bar,
+		)
+	} else {
+		ordPb := job.Provider.InjectOrder
+		if ordPb == "" {
+			ordPb = job.Provider.Name
+		}
+		specificInfo := fmt.Sprintf(
+			"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
+				"📡 数据提供商: <code>%s</code>\n"+
+				"🏛️ 交易提供商: <code>%s</code>\n",
+			job.Amount.Buy, job.Amount.Sell, job.Provider.Name, ordPb,
+		)
+		msgText = fmt.Sprintf(baseFormat,
+			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			specificInfo, job.Bar,
+		)
+	}
+	return msgText
+}
+
+// 根据 Subscribers []int64 生成订阅者列表
+func formatSubscribers(bot *tgApi.BotAPI, subs []int64) string {
+	builder := &bytes.Buffer{}
+	for _, sub := range subs {
+		chat, err := bot.GetChat(tgApi.ChatInfoConfig{ChatConfig: tgApi.ChatConfig{ChatID: sub}})
+		if err != nil || !chat.IsPrivate() {
+			continue
+		}
+		displayName := chat.FirstName
+		if chat.LastName != "" {
+			displayName += " " + chat.LastName
+		}
+		builder.WriteString(fmt.Sprintf("<a href=\"tg://user?id=%d\">%s</a> ", sub, displayName))
+	}
+	// 删除最后一个空格
+	builder.Truncate(builder.Len() - 1)
+	return builder.String()
 }

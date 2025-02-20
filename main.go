@@ -60,7 +60,7 @@ func (app *App) initJobs(jobs []config.Job) error {
 	for _, j := range jobs {
 		jobConfig, _ := json.MarshalIndent(j, "", "  ")
 
-		id, err := app.manager.AddJob(j)
+		id, err := app.manager.CreateJob(j)
 		if err != nil {
 			app.log.Error().
 				Err(err).
@@ -69,7 +69,7 @@ func (app *App) initJobs(jobs []config.Job) error {
 			continue
 		}
 
-		if err := app.manager.RunJob(id); err != nil {
+		if err := app.manager.StartJob(id); err != nil {
 			app.log.Error().
 				Err(err).
 				Bytes("任务配置", jobConfig).
@@ -95,7 +95,7 @@ func (app *App) initBot() {
 func (app *App) cleanup(sig os.Signal) {
 	app.log.Info().Str("Signal", sig.String()).Msg("正在清理资源...")
 
-	if err := config.SaveConfig(app.configPath, app.manager.JobsAllData()); err != nil {
+	if err := config.SaveConfig(app.configPath, app.manager.ListAllJobs()); err != nil {
 		app.log.Error().Err(err).Msg("保存配置文件失败")
 	}
 
@@ -104,7 +104,7 @@ func (app *App) cleanup(sig os.Signal) {
 		app.bot.StopReceivingUpdates()
 	}
 
-	app.manager.RemoveAll()
+	app.manager.ClearAllJobs()
 
 	app.log.Info().Msg("所有资源已清理，程序即将退出")
 }

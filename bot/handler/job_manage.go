@@ -13,7 +13,7 @@ func (handler *BotHandler) promptJobManage(chatID int64) {
 		return
 	}
 
-	jobs := handler.JobManager.JobsAllData()
+	jobs := handler.JobManager.ListAllJobs()
 	if len(jobs) == 0 {
 		handler.sendMessage(chatID, "ℹ️ <b>系统提示</b>\n\n<i>当前尚未创建任何任务</i>")
 		return
@@ -24,7 +24,7 @@ func (handler *BotHandler) promptJobManage(chatID int64) {
 
 	var rows [][]tgApi.InlineKeyboardButton
 	for _, job := range jobs {
-		isRunning := handler.JobManager.IsRunning(job.GetId())
+		isRunning := handler.JobManager.IsJobRunning(job.GetId())
 		status := "▶️" // 暂停状态显示启动按钮
 		if isRunning {
 			status = "⏸️" // 运行状态显示暂停按钮
@@ -43,27 +43,37 @@ func (handler *BotHandler) handleJobManageSelection(query *tgApi.CallbackQuery) 
 	jobID := strings.TrimPrefix(query.Data, "manage_")
 	chatID := query.Message.Chat.ID
 
-	action := "暂停"
-	status := "运行中"
-	actionEmoji := "⏸️"
-	if !handler.JobManager.IsRunning(jobID) {
-		action = "启动"
-		status = "已暂停"
-		actionEmoji = "▶️"
+	jobData, find := handler.JobManager.GetJobData(jobID)
+	if !find {
+		handler.sendMessage(chatID, "❌ <b>任务不存在</b>\n\n<i>请刷新任务列表</i>")
+		return
 	}
 
-	messageText := fmt.Sprintf("🔄 <b>任务状态变更</b>\n\n"+
-		"任务ID: <code>%s</code>\n"+
-		"当前状态: <code>%s</code>\n\n"+
-		"确认%s该任务？", jobID, status, action)
+	action := "暂停"
+	status := "运行中"
+	if !handler.JobManager.IsJobRunning(jobID) {
+		action = "启动"
+		status = "已暂停"
+	}
+
+	messageText := fmt.Sprintf("⚙️ <b>任务操作面板</b>\n\n"+
+		"%s\n"+
+		"👥 订阅者: %s\n\n"+
+		"📌 当前状态: <code>%s</code>\n\n"+
+		"🔔 请选择要执行的操作",
+		formatJobPreview(jobData),
+		formatSubscribers(handler.BotAPI, jobData.Subscribers),
+		status,
+	)
 
 	markup := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData(
-				fmt.Sprintf("%s 确定%s", actionEmoji, action),
+				fmt.Sprintf("%s", action),
 				fmt.Sprintf("confirm_manage_%s", jobID),
 			),
-			tgApi.NewInlineKeyboardButtonData("❌ 取消", "cancel_manage"),
+			tgApi.NewInlineKeyboardButtonData("删除", fmt.Sprintf("confirm_admin_delete_%s", jobID)),
+			tgApi.NewInlineKeyboardButtonData("取消", "cancel_manage"),
 		),
 	)
 
@@ -76,19 +86,19 @@ func (handler *BotHandler) handleJobManageConfirmation(query *tgApi.CallbackQuer
 
 	var err error
 	action := "暂停"
-	if !handler.JobManager.IsRunning(jobID) {
-		err = handler.JobManager.RunJob(jobID)
+	if !handler.JobManager.IsJobRunning(jobID) {
+		err = handler.JobManager.StartJob(jobID)
 		action = "启动"
 	} else {
 		err = handler.JobManager.StopJob(jobID)
 	}
 
 	if err != nil {
-		handler.sendMessage(chatID, fmt.Sprintf("❌ <b>%s失败</b>\n\n"+
+		handler.sendEditMessage(chatID, query.Message.MessageID, fmt.Sprintf("❌ <b>%s失败</b>\n\n"+
 			"任务ID: <code>%s</code>\n"+
 			"错误信息: <i>%v</i>", action, jobID, err))
 	} else {
-		handler.sendMessage(chatID, fmt.Sprintf("✅ <b>%s成功</b>\n\n"+
+		handler.sendEditMessage(chatID, query.Message.MessageID, fmt.Sprintf("✅ <b>%s成功</b>\n\n"+
 			"任务ID: <code>%s</code>", action, jobID))
 	}
 }

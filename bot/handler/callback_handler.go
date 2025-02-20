@@ -33,6 +33,8 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 		handler.handleJobRemovalConfirmation(query)
 	} else if strings.HasPrefix(query.Data, "confirm_manage_") {
 		handler.handleJobManageConfirmation(query)
+	} else if strings.HasPrefix(query.Data, "confirm_admin_delete_") {
+		handler.handleAdminJobRemovalConfirmation(query)
 	}
 }
 

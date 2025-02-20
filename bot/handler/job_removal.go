@@ -10,7 +10,7 @@ import (
 // promptJobRemoval displays a list of existing jobs in a more user-friendly layout
 // and asks the user to select which job they would like to remove.
 func (handler *BotHandler) promptJobRemoval(chatID int64) {
-	jobs := handler.JobManager.JobsData(chatID)
+	jobs := handler.JobManager.ListJobsBySubscriber(chatID)
 	if len(jobs) == 0 {
 		handler.sendMessage(chatID, "ℹ️ <b>系统提示</b>\n\n<i>当前没有任何可释放的任务</i>")
 		return
@@ -53,13 +53,27 @@ func (handler *BotHandler) handleJobRemovalConfirmation(query *tgApi.CallbackQue
 	chatID := query.Message.Chat.ID
 	data := query.Data
 	jobID := strings.TrimPrefix(data, "confirm_delete_")
-	err := handler.JobManager.RemoveSubscriber(jobID, chatID)
+	err := handler.JobManager.Unsubscribe(jobID, chatID)
 	if err != nil {
-		handler.sendMessage(chatID, fmt.Sprintf("❌ <b>释放失败</b>\n\n"+
+		handler.sendEditMessage(chatID, query.Message.MessageID, fmt.Sprintf("❌ <b>释放失败</b>\n\n"+
 			"任务ID: <code>%s</code>\n"+
 			"错误信息: <i>%v</i>", jobID, err))
 	} else {
-		handler.sendMessage(chatID, fmt.Sprintf("✅ <b>释放成功</b>\n\n"+
+		handler.sendEditMessage(chatID, query.Message.MessageID, fmt.Sprintf("✅ <b>释放成功</b>\n\n"+
+			"任务ID: <code>%s</code>", jobID))
+	}
+}
+
+// handleAdminJobRemovalConfirmation
+func (handler *BotHandler) handleAdminJobRemovalConfirmation(query *tgApi.CallbackQuery) {
+	jobID := strings.TrimPrefix(query.Data, "confirm_admin_delete_")
+	err := handler.JobManager.DeleteJob(jobID)
+	if err != nil {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, fmt.Sprintf("❌ <b>删除失败</b>\n\n"+
+			"任务ID: <code>%s</code>\n"+
+			"错误信息: <i>%v</i>", jobID, err))
+	} else {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, fmt.Sprintf("✅ <b>删除成功</b>\n\n"+
 			"任务ID: <code>%s</code>", jobID))
 	}
 }

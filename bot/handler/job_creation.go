@@ -81,53 +81,21 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		}
 		session.TempJob.Bar = msg.Text
 		session.Step++
-		handler.showJobPreview(chatID, session.TempJob)
+		handler.showJobPreview(chatID, *session.TempJob)
 	}
 }
 
 // showJobPreview displays a summary of the job to confirm creation.
-func (handler *BotHandler) showJobPreview(chatID int64, job *config.Job) {
-	var msgText string
-	if job.Type == "notify" {
-		msgText = fmt.Sprintf(
-			"📋 <b>任务预览</b>\n\n"+
-				"🔑 ID: <code>%s</code>\n"+
-				"📊 类型: <code>%s</code>\n"+
-				"💱 交易对: <code>%s/%s</code>\n"+
-				"📡 数据提供商: <code>%s</code>\n"+
-				"⏱️ 采样间隔: <code>%s</code>\n\n"+
-				"⚠️ <i>请确认以上信息</i>",
-			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
-			job.Provider.Name, job.Bar,
-		)
-	} else {
-		ordPb := job.Provider.InjectOrder
-		if ordPb == "" {
-			ordPb = job.Provider.Name
-		}
-		msgText = fmt.Sprintf(
-			"📋 <b>任务预览</b>\n\n"+
-				"🔑 ID: <code>%s</code>\n"+
-				"📊 类型: <code>%s</code>\n"+
-				"💱 交易对: <code>%s/%s</code>\n"+
-				"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
-				"📡 数据提供商: <code>%s</code>\n"+
-				"🏛️ 交易提供商: <code>%s</code>\n"+
-				"⏱️ 采样间隔: <code>%s</code>\n\n"+
-				"⚠️ <i>请确认以上信息</i>",
-			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
-			job.Amount.Buy, job.Amount.Sell, job.Provider.Name,
-			ordPb, job.Bar,
-		)
-	}
-
+func (handler *BotHandler) showJobPreview(chatID int64, job config.Job) {
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData("确定", "confirm_job_creation"),
 			tgApi.NewInlineKeyboardButtonData("取消", "cancel_job_creation"),
 		),
 	)
-	handler.sendMessageWithMarkup(chatID, msgText, keyboard)
+	handler.sendMessageWithMarkup(chatID,
+		fmt.Sprintf("📋 <b>任务预览</b>\n\n%s\n\n⚠️ <i>请确认以上信息</i>", formatJobPreview(job)),
+		keyboard)
 }
 
 func (handler *BotHandler) promptJobType(chatID int64) {
@@ -176,14 +144,14 @@ func (handler *BotHandler) promptBarInterval(chatID int64) {
 func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQuery) {
 	session, ok := handler.Sessions.Load(query.Message.Chat.ID)
 	if !ok {
-		handler.sendMessage(query.Message.Chat.ID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
 		return
 	}
-	if _, err := handler.JobManager.AddJob(*session.TempJob); err != nil {
-		handler.sendMessage(query.Message.Chat.ID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
+	if _, err := handler.JobManager.CreateJob(*session.TempJob); err != nil {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
 		return
 	}
-	_ = handler.JobManager.RunJob(session.TempJob.GetId())
-	handler.sendMessage(query.Message.Chat.ID, "✅ <b>任务创建成功</b>")
+	_ = handler.JobManager.StartJob(session.TempJob.GetId())
+	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "✅ <b>任务创建成功</b>")
 	handler.Sessions.Delete(query.Message.Chat.ID)
 }

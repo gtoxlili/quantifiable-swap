@@ -15,15 +15,16 @@ import (
 )
 
 type IManager interface {
-	AddJob(j config.Job) (string, error)
-	RemoveJob(id string) error
-	RemoveSubscriber(id string, chatID int64) error
-	RemoveAll()
-	RunJob(id string) error
+	CreateJob(j config.Job) (string, error)
+	DeleteJob(id string) error
+	Unsubscribe(id string, chatID int64) error
+	ClearAllJobs()
+	StartJob(id string) error
 	StopJob(id string) error
-	JobsData(subId int64) []config.Job
-	JobsAllData() []config.Job
-	IsRunning(id string) bool
+	ListJobsBySubscriber(subId int64) []config.Job
+	ListAllJobs() []config.Job
+	IsJobRunning(id string) bool
+	GetJobData(id string) (config.Job, bool)
 }
 
 // Job Map Value 的结构
@@ -43,8 +44,7 @@ func NewManager() IManager {
 	return &Manager{}
 }
 
-// AddJob 添加一个新的 Job
-func (m *Manager) AddJob(j config.Job) (string, error) {
+func (m *Manager) CreateJob(j config.Job) (string, error) {
 	if err := j.Validate("InjectOrder", "Sell", "Buy", "Subscribers"); err != nil {
 		return "", err
 	}
@@ -104,8 +104,7 @@ func (m *Manager) AddJob(j config.Job) (string, error) {
 	return j.GetId(), nil
 }
 
-// RemoveJob 根据 id 删除 Job
-func (m *Manager) RemoveJob(id string) error {
+func (m *Manager) DeleteJob(id string) error {
 	if job, found := m.jobs.Load(id); found {
 		if job.cancel != nil {
 			if err := m.StopJob(id); err != nil {
@@ -118,12 +117,11 @@ func (m *Manager) RemoveJob(id string) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// RemoveSubscriber 删除某个订阅者，如果没有订阅者则删除 Job
-func (m *Manager) RemoveSubscriber(id string, chatID int64) error {
+func (m *Manager) Unsubscribe(id string, chatID int64) error {
 	if job, found := m.jobs.Load(id); found {
 		subscribers := lo.Delete(job.conf.Subscribers, chatID)
 		if len(subscribers) == 0 {
-			return m.RemoveJob(id)
+			return m.DeleteJob(id)
 		}
 		job.conf.Subscribers = subscribers
 		job.waper.WithSubscribers(subscribers)
@@ -132,16 +130,14 @@ func (m *Manager) RemoveSubscriber(id string, chatID int64) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// RemoveAll 删除所有 Job
-func (m *Manager) RemoveAll() {
+func (m *Manager) ClearAllJobs() {
 	m.jobs.Range(func(key string, value *Job) bool {
-		_ = m.RemoveJob(key)
+		_ = m.DeleteJob(key)
 		return true
 	})
 }
 
-// RunJob 根据 id 运行 Job
-func (m *Manager) RunJob(id string) error {
+func (m *Manager) StartJob(id string) error {
 	if job, found := m.jobs.Load(id); found {
 		if job.cancel != nil {
 			return fmt.Errorf("job %s 已在运行", id)
@@ -157,7 +153,6 @@ func (m *Manager) RunJob(id string) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// StopJob 停止某个 Job
 func (m *Manager) StopJob(id string) error {
 	if job, found := m.jobs.Load(id); found {
 		if job.cancel == nil {
@@ -170,8 +165,7 @@ func (m *Manager) StopJob(id string) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-// JobsAllData 获取 所有 []Job
-func (m *Manager) JobsAllData() []config.Job {
+func (m *Manager) ListAllJobs() []config.Job {
 	var jobs []config.Job
 	m.jobs.Range(func(key string, value *Job) bool {
 		jobs = append(jobs, *value.conf)
@@ -180,8 +174,7 @@ func (m *Manager) JobsAllData() []config.Job {
 	return jobs
 }
 
-// JobsData 获取某个订阅者的 []Job
-func (m *Manager) JobsData(subId int64) []config.Job {
+func (m *Manager) ListJobsBySubscriber(subId int64) []config.Job {
 	var jobs []config.Job
 	m.jobs.Range(func(key string, value *Job) bool {
 		if slices.Contains(value.conf.Subscribers, subId) {
@@ -192,10 +185,16 @@ func (m *Manager) JobsData(subId int64) []config.Job {
 	return jobs
 }
 
-// IsRunning 判断某个 Job 是否在运行
-func (m *Manager) IsRunning(id string) bool {
+func (m *Manager) IsJobRunning(id string) bool {
 	if job, found := m.jobs.Load(id); found {
 		return job.cancel != nil
 	}
 	return false
+}
+
+func (m *Manager) GetJobData(id string) (config.Job, bool) {
+	if job, found := m.jobs.Load(id); found {
+		return *job.conf, true
+	}
+	return *new(config.Job), false
 }

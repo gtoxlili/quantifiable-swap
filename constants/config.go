@@ -10,10 +10,10 @@ var (
 	BarkToken      = ""
 	ByBitAPIKey    = ""
 	ByBitAPISecret = ""
-	TGBotToken     = ""
+	TGBotToken     = "7102299208:AAHiPGCMtPWvMYwrm62eW_bpkperpsPncMg"
 	TGChatID       int64
 
-	tmpTgChatID = ""
+	tmpTgChatID = "584544685"
 )
 
 func init() {
