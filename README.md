@@ -5,23 +5,25 @@ This project is an automated trading and monitoring system implemented in Go. It
 ----------------------------------------------------------------------------------------------------
 
 ## Table of Contents
-- Project Overview
-- Key Features
-- Core Modules
-  - Job Management (common/job)
-  - Data Providers (provider)
-  - Technical Indicators (quantifiable)
-  - Logging System (common/logger)
-  - Configuration Management (common/config)
-- Getting Started
-  1. Environment & Dependencies
-  2. Building & Packaging
-  3. Deployment & Launch
-  4. Configuration File
-- Taskflow (Taskfile)
-- FAQ
-- License
-- More Info
+- [Quantifiable Swap](#quantifiable-swap)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+  - [Key Features](#key-features)
+  - [Core Modules](#core-modules)
+    - [Job Management](#job-management)
+    - [Data Providers](#data-providers)
+    - [Technical Indicators](#technical-indicators)
+    - [Logging System](#logging-system)
+    - [Configuration Management](#configuration-management)
+  - [Getting Started](#getting-started)
+    - [1. Environment \& Dependencies](#1-environment--dependencies)
+    - [2. Building \& Packaging](#2-building--packaging)
+    - [3. Deployment \& Launch](#3-deployment--launch)
+    - [4. Configuration File](#4-configuration-file)
+  - [Taskflow (Taskfile)](#taskflow-taskfile)
+  - [FAQ](#faq)
+  - [License](#license)
+  - [More Info](#more-info)
 
 ----------------------------------------------------------------------------------------------------
 
