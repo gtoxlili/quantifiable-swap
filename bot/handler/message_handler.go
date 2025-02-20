@@ -10,10 +10,10 @@ import (
 func (handler *BotHandler) processIncomingMessage(msg *tgApi.Message) {
 	session, _ := handler.Sessions.Load(msg.Chat.ID)
 	switch {
-	case session != nil:
-		handler.handleStatefulFlow(msg, session)
 	case msg.IsCommand():
 		handler.handleCommand(msg)
+	case session != nil:
+		handler.handleStatefulFlow(msg, session)
 	}
 }
 
