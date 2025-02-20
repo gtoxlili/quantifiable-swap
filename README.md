@@ -66,51 +66,30 @@ The project is written in Go with minimal dependencies and can run on multiple p
 
 ## Core Modules
 
-### Job Management (common/job)
+### [Job Management](common/job)
 - Defines the Job structure and the Manager.  
 - Enables creation, deletion, start, and stop actions for Jobs either via configuration or dynamic calls.  
 - Each Job corresponds to one trading strategy and a list of subscribers, executing tasks independently and sending out log notifications.
 
-Key Files:
-- job.go
-
-### Data Providers (provider)
+### [Data Providers](provider)
 - Provides unified interfaces for various exchanges or data sources, including market data and order execution.  
 - OkxProvider, ByBitProvider, and PolymericProvider are implemented; others can be added as needed.  
 - Supports custom rate limiters, K-line data parsing, and handling order confirmations.
 
-Key Files:
-- okx.go  
-- bybit.go  
-- polymeric.go  
-
-### Technical Indicators (quantifiable)
+### [Technical Indicators](quantifiable)
 - Houses the logic for various indicators, for instance, RSI and MA.  
 - Offers a standardized Indicator interface that supports custom and compound indicators.  
 - Easily referenced or combined in trading strategies.
 
-Key Files:
-- rsi.go  
-- ma.go  
-
-### Logging System (common/logger)
+### [Logging System](common/logger)
 - Exposes a unified Logger interface with configurable outputs: console, Telegram, Bark, etc.  
 - Supports info, warn, and error levels, where higher levels may trigger alerts (e.g., pinned messages in Telegram).  
 - Integrates `pretty` console/tglog/bark modules for flexible rendering and distribution of logs.
 
-Key Files:
-- logger.go  
-- console.go  
-- log.go  
-- notify.go  
-
-### Configuration Management (common/config)
+### [Configuration Management](common/config)
 - Parses and saves config.yaml, allowing local persistence of current strategy settings.  
 - Job, Provider, and Credential details can all be declared or modified in this file.  
 - Loads configuration on startup and can also save changes at runtime.
-
-Key Files:
-- config.go  
 
 ----------------------------------------------------------------------------------------------------
 
