@@ -20,8 +20,7 @@ func (r TradeContext) Snapshot(snapshot *TradeSnapshot) TradeContext {
 	return r
 }
 
-// sellStrategy determines if the RSI suggests a sell signal
-func defaultCanSell(tc TradeContext) error {
+func defaultSellStrategy(tc TradeContext) error {
 	rsiQueue := tc.rsiQueue
 	curRSI := tc.curRSI
 	snapshot := tc.snapshot
@@ -49,7 +48,7 @@ func defaultCanSell(tc TradeContext) error {
 	return ErrInvalidSellCondition
 }
 
-func defaultCanBuy(tc TradeContext) error {
+func defaultBuyStrategy(tc TradeContext) error {
 	rsiQueue := tc.rsiQueue
 	curRSI := tc.curRSI
 	snapshot := tc.snapshot

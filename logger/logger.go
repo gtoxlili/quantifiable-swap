@@ -75,19 +75,19 @@ func (l *Logger) WithSubscribers(subscribers []int64) *Logger {
 // PrintError 打印错误日志。
 func (l *Logger) PrintError(err error, disableNotify bool) {
 	if errors.Is(err, context.Canceled) {
-		l.PrintWAPStop()
+		l.PrintStrategyStop()
 		return
 	}
 	l.log.Error().Err(err).
 		Bool("disableNotify", disableNotify).Send()
 }
 
-func (l *Logger) PrintWAPStop() {
-	l.log.Info().Msg("量化策略已停止")
+func (l *Logger) PrintStrategyStop() {
+	l.log.Info().Msg("交易策略已停止")
 }
 
-// PrintIndicatorLog 演示打印多个字段：时间、价格、RSI、MA5、MA20。
-func (l *Logger) PrintIndicatorLog(candleTime time.Time, price, curRSI, ma5, ma20 float64, abnormal string) {
+// PrintStrategyMetrics 演示打印多个字段：时间、价格、RSI、MA5、MA20。
+func (l *Logger) PrintStrategyMetrics(candleTime time.Time, price, curRSI, ma5, ma20 float64, abnormal string) {
 	log := l.log.Info()
 	if abnormal != "" {
 		log = l.log.Warn().Str("异常", abnormal)

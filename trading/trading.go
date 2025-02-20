@@ -55,10 +55,10 @@ func NewMonitor(base, quote string, bar time.Duration, dataProvider market.Provi
 
 // NewTrader creates a new executor instance
 func NewTrader(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider market.Provider) IStrategyExecutor {
-	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
+	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultSellStrategy, defaultBuyStrategy, dataProvider)
 }
 
-func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeContext) error, dataProvider market.Provider) IStrategyExecutor {
+func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, sellStrategy, buyStrategy func(tc TradeContext) error, dataProvider market.Provider) IStrategyExecutor {
 	ind := &StrategyExecutor{
 		base:         base,
 		quote:        quote,
@@ -66,8 +66,8 @@ func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Durati
 		sellAmount:   sellAmount,
 		buyAmount:    buyAmount,
 		autoTrade:    autoTrade,
-		sellStrategy: canSell,
-		buyStrategy:  canBuy,
+		sellStrategy: sellStrategy,
+		buyStrategy:  buyStrategy,
 		dataProvider: dataProvider,
 
 		// 初始化快照
@@ -95,15 +95,15 @@ func (r *StrategyExecutor) Run(ctx context.Context) {
 }
 
 func (r *StrategyExecutor) RunWithCustomPeriod(ctx context.Context, period int) {
-	rsiHook, err := r.prepareIndicatorHook(ctx, period)
+	rsiHook, err := r.prepareStrategyHook(ctx, period)
 	if err != nil {
 		r.log.PrintError(err, false)
 		return
 	}
-	r.runIndicatorLoop(ctx, rsiHook)
+	r.executeStrategyLoop(ctx, rsiHook)
 }
 
-func (r *StrategyExecutor) prepareIndicatorHook(ctx context.Context, period int) (indicator.Decorator[float64], error) {
+func (r *StrategyExecutor) prepareStrategyHook(ctx context.Context, period int) (indicator.Decorator[float64], error) {
 	priceSeq, err := sequence.NewPriceSequence(ctx, r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
 		return nil, fmt.Errorf("创建价格序列失败：%w", err)
@@ -116,11 +116,11 @@ func (r *StrategyExecutor) prepareIndicatorHook(ctx context.Context, period int)
 		Build()
 }
 
-func (r *StrategyExecutor) runIndicatorLoop(ctx context.Context, hook indicator.Decorator[float64]) {
+func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicator.Decorator[float64]) {
 	for {
 		select {
 		case <-ctx.Done():
-			r.log.PrintWAPStop()
+			r.log.PrintStrategyStop()
 			return
 		default:
 			candle, err := hook.Update(ctx)
@@ -150,7 +150,7 @@ func (r *StrategyExecutor) runIndicatorLoop(ctx context.Context, hook indicator.
 			if curRSI < 30 || curRSI > 70 {
 				abnormal = "RSI"
 			}
-			r.log.PrintIndicatorLog(candle.Time, candle.Value, curRSI, ma5, ma20, abnormal)
+			r.log.PrintStrategyMetrics(candle.Time, candle.Value, curRSI, ma5, ma20, abnormal)
 
 			// 如果自动交易未开启，直接继续循环
 			if !r.autoTrade {
