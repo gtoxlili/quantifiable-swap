@@ -25,7 +25,11 @@ var (
 
 func init() {
 	zerolog.TimeFieldFormat = "15:04:05"
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	lever, err := zerolog.ParseLevel(constants.LogLevel)
+	if err != nil {
+		lever = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(lever)
 	zerolog.FloatingPointPrecision = 2
 
 	var outSet []io.Writer

@@ -1,6 +1,7 @@
 version: '3'
 
 vars:
+  LOG_LEVEL: info
   BINARY_NAME:
   OKX_API_KEY:
   OKX_SECRET_KEY:
@@ -10,6 +11,8 @@ vars:
   BYBIT_API_SECRET:
   TG_BOT_TOKEN:
   TG_CHAT_ID:
+  REMOTE_ADDRESS:
+  REMOTE_DIR:
 
 tasks:
   clean:
@@ -32,6 +35,7 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret={{.BYBIT_API_SECRET}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken={{.TG_BOT_TOKEN}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.tmpTgChatID={{.TG_CHAT_ID}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.LogLevel={{.LOG_LEVEL}}' \
         -w -s -buildid="
   # 上传程序至远程服务器
   deploy-binary:
@@ -61,11 +65,9 @@ tasks:
           TASK: "{{.TASK}}",
           GOOS: darwin,
           GOARCH: amd64,
+          LOG_LEVEL: "{{.LOG_LEVEL}}"
         }
   default:
-    vars:
-      REMOTE_ADDRESS:
-      REMOTE_DIR:
     cmds:
       - task: clean
       - task: linux-amd64
@@ -78,3 +80,6 @@ tasks:
     cmds:
       - task: clean
       - task: darwin-amd64
+        vars: {
+          LOG_LEVEL: debug
+        }

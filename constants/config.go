@@ -3,6 +3,7 @@ package constants
 import "strconv"
 
 var (
+	LogLevel       = ""
 	OkxAPIKey      = ""
 	OkxSecretKey   = ""
 	OkxPassphrase  = ""
