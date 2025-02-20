@@ -34,10 +34,11 @@ func NewBinance() Provider {
 	}
 }
 
-// InjectOrderFunc 注入下单方法
-func (b BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	b.orderFunc = orderFunc
-	return &b
+// InjectOrderFunc creates a new BinanceProvider instance with the provided order function
+func (b *BinanceProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+	newProvider := *b
+	newProvider.orderFunc = orderFunc
+	return &newProvider
 }
 
 func (b *BinanceProvider) Name() string {

@@ -42,9 +42,10 @@ func NewByBit() Provider {
 }
 
 // InjectOrderFunc 注入下单方法
-func (b ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	b.orderFunc = orderFunc
-	return &b
+func (b *ByBitProvider) InjectOrderFunc(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
+	newProvider := *b
+	newProvider.orderFunc = orderFunc
+	return &newProvider
 }
 
 func (b *ByBitProvider) GetHistoryTpRes(base, quote string, afterTime string, limit int) ([]*TpRes, error) {
