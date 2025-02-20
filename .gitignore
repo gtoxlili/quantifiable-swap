@@ -9,3 +9,4 @@
 /*.sum
 /Taskfile.yml
 /Makefile
+/config.copy.yaml
