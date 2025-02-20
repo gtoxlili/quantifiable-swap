@@ -53,6 +53,9 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	}
 	var tradeProv market.TradingProvider
 	if j.Type != "monitor" {
+		if j.Provider.Trading == "" {
+			return "", fmt.Errorf("非监控任务必须指定 Trading Provider")
+		}
 		tradeProv = market.NewTradingProvider(j.Provider.Trading)
 		if tradeProv == nil {
 			return "", fmt.Errorf("未知的 Trading Provider: %s", j.Provider.Trading)
