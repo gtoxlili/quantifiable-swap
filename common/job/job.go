@@ -50,15 +50,15 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	}
 
 	// id 重复时，添加订阅者
-	if job, found := m.jobs.Load(j.GetId()); found {
+	if job, found := m.jobs.Load(j.String()); found {
 		subscribers := job.conf.Subscribers
 		if slices.Contains(subscribers, j.Subscribers[0]) {
-			return "", fmt.Errorf("job %s 已存在", j.GetId())
+			return "", fmt.Errorf("job %s 已存在", j.String())
 		}
 		subscribers = append(subscribers, j.Subscribers[0])
 		job.conf.Subscribers = subscribers
 		job.waper.WithSubscribers(subscribers)
-		return j.GetId(), nil
+		return j.String(), nil
 	}
 
 	prov := provider.NewProvider(j.Provider.Name)
@@ -96,12 +96,12 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	}
 
 	waper.WithSubscribers(j.Subscribers)
-	m.jobs.Store(j.GetId(), &Job{
+	m.jobs.Store(j.String(), &Job{
 		conf:  &j,
 		waper: waper,
 	})
 
-	return j.GetId(), nil
+	return j.String(), nil
 }
 
 func (m *Manager) DeleteJob(id string) error {

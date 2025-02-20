@@ -93,7 +93,7 @@ func formatJobPreview(job config.Job) string {
 
 	if job.Type == "notify" {
 		msgText = fmt.Sprintf(baseFormat,
-			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			job.String(), job.Type, job.Symbol.Base, job.Symbol.Quote,
 			fmt.Sprintf("📡 数据提供商: <code>%s</code>\n", job.Provider.Name),
 			job.Bar,
 		)
@@ -109,7 +109,7 @@ func formatJobPreview(job config.Job) string {
 			job.Amount.Buy, job.Amount.Sell, job.Provider.Name, ordPb,
 		)
 		msgText = fmt.Sprintf(baseFormat,
-			job.GetId(), job.Type, job.Symbol.Base, job.Symbol.Quote,
+			job.String(), job.Type, job.Symbol.Base, job.Symbol.Quote,
 			specificInfo, job.Bar,
 		)
 	}

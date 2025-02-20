@@ -172,7 +172,7 @@ func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQu
 		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
 		return
 	}
-	_ = handler.JobManager.StartJob(session.TempJob.GetId())
+	_ = handler.JobManager.StartJob(session.TempJob.String())
 	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "✅ <b>任务创建成功</b>")
 	handler.Sessions.Delete(query.Message.Chat.ID)
 }

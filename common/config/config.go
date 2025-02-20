@@ -32,7 +32,7 @@ type Job struct {
 	Subscribers []int64  `yaml:"subscribers,omitempty" json:"subscribers,omitempty"`
 }
 
-func (j *Job) GetId() string {
+func (j *Job) String() string {
 	return strings.ToUpper(j.Provider.Name + "·" + j.Type + "·" + j.Symbol.Base + "/" + j.Symbol.Quote + "·" + j.Bar)
 }
 

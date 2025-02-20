@@ -21,8 +21,8 @@ func (handler *BotHandler) promptJobRemoval(chatID int64) {
 
 	var rows [][]tgApi.InlineKeyboardButton
 	for _, jobID := range jobs {
-		btnLabel := fmt.Sprintf("❌ %s", jobID.GetId())
-		callbackData := fmt.Sprintf("delete_%s", jobID.GetId())
+		btnLabel := fmt.Sprintf("❌ %s", jobID.String())
+		callbackData := fmt.Sprintf("delete_%s", jobID.String())
 		button := tgApi.NewInlineKeyboardButtonData(btnLabel, callbackData)
 		rows = append(rows, tgApi.NewInlineKeyboardRow(button))
 	}

@@ -24,13 +24,13 @@ func (handler *BotHandler) promptJobManage(chatID int64) {
 
 	var rows [][]tgApi.InlineKeyboardButton
 	for _, job := range jobs {
-		isRunning := handler.JobManager.IsJobRunning(job.GetId())
+		isRunning := handler.JobManager.IsJobRunning(job.String())
 		status := "▶️" // 暂停状态显示启动按钮
 		if isRunning {
 			status = "⏸️" // 运行状态显示暂停按钮
 		}
-		btnLabel := fmt.Sprintf("%s %s", status, job.GetId())
-		callbackData := fmt.Sprintf("manage_%s", job.GetId())
+		btnLabel := fmt.Sprintf("%s %s", status, job.String())
+		callbackData := fmt.Sprintf("manage_%s", job.String())
 		button := tgApi.NewInlineKeyboardButtonData(btnLabel, callbackData)
 		rows = append(rows, tgApi.NewInlineKeyboardRow(button))
 	}
