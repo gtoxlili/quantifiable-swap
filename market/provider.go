@@ -1,4 +1,4 @@
-package exchange
+package market
 
 import (
 	"strings"
@@ -9,17 +9,27 @@ type PriceTick struct {
 	Price     string
 }
 
-// Provider 数据提供者
+// Provider 定义了市场提供者的基本接口
 type Provider interface {
+	// DataProvider 市场数据能力
+	DataProvider
+	// TradingProvider 交易能力
+	TradingProvider
+	// Name 提供者标识
+	Name() string
+}
+
+// DataProvider 定义了市场数据提供能力
+type DataProvider interface {
 	GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error)
 	GetLatestData(base, quote string) (*PriceTick, error)
-	ExecuteMarketOrder(base, quote string, side string, size float64) (string, error)
-	// GetMaxHistoryLimit 可容忍的历史数据最大获取量
 	GetMaxHistoryLimit() int
-	// Name 供应商名称
-	Name() string
-	encodeInstrumentID(base, quote string) string
 	WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider
+}
+
+// TradingProvider 定义了交易能力
+type TradingProvider interface {
+	ExecuteMarketOrder(base, quote string, side string, size float64) (string, error)
 }
 
 // providers 存储所有注册的 Provider 实例

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
-	"github.com/gtoxlili/quantifiable-swap/exchange"
 	"github.com/gtoxlili/quantifiable-swap/indicator"
 	"github.com/gtoxlili/quantifiable-swap/logger"
+	"github.com/gtoxlili/quantifiable-swap/market"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/tools/container/intsets"
 	"strings"
@@ -44,21 +44,21 @@ type StrategyExecutor struct {
 	sellStrategy func(tc TradeContext) error
 	buyStrategy  func(tc TradeContext) error
 
-	dataProvider exchange.Provider
+	dataProvider market.Provider
 	log          *logger.Logger
 }
 
 // NewMonitor 不进行自动下单的 executor （只提醒）
-func NewMonitor(base, quote string, bar time.Duration, dataProvider exchange.Provider) IStrategyExecutor {
+func NewMonitor(base, quote string, bar time.Duration, dataProvider market.Provider) IStrategyExecutor {
 	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
 }
 
 // NewTrader creates a new executor instance
-func NewTrader(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider exchange.Provider) IStrategyExecutor {
+func NewTrader(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider market.Provider) IStrategyExecutor {
 	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeContext) error, dataProvider exchange.Provider) IStrategyExecutor {
+func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeContext) error, dataProvider market.Provider) IStrategyExecutor {
 	ind := &StrategyExecutor{
 		base:         base,
 		quote:        quote,

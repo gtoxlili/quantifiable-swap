@@ -1,4 +1,4 @@
-package exchange
+package market
 
 import (
 	"fmt"
@@ -118,10 +118,6 @@ func (p *PolymericProvider) Name() string {
 		name += member.Name() + "|"
 	}
 	return name[:len(name)-1]
-}
-
-func (p *PolymericProvider) encodeInstrumentID(_, _ string) string {
-	panic("undefined behavior")
 }
 
 // 默认的策略函数 （AVG）

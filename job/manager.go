@@ -7,7 +7,7 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/common/smap"
 	"github.com/gtoxlili/quantifiable-swap/constants"
-	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/market"
 	"github.com/gtoxlili/quantifiable-swap/trading"
 	"golang.org/x/exp/slices"
 	"time"
@@ -47,12 +47,12 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		return j.String(), nil
 	}
 
-	prov := exchange.NewProvider(j.Provider.Name)
+	prov := market.NewProvider(j.Provider.Name)
 	if prov == nil {
 		return "", fmt.Errorf("未知的 Provider: %s", j.Provider.Name)
 	}
 	if j.Provider.InjectOrder != "" {
-		injectProv := exchange.NewProvider(j.Provider.InjectOrder)
+		injectProv := market.NewProvider(j.Provider.InjectOrder)
 		if injectProv == nil {
 			return "", fmt.Errorf("未知的 InjectOrder Provider: %s", j.Provider.InjectOrder)
 		}

@@ -3,7 +3,7 @@ package sequence
 import (
 	"context"
 	"fmt"
-	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/market"
 	"strconv"
 	"sync"
 	"time"
@@ -22,11 +22,11 @@ type PriceSequence struct {
 	mu        sync.Mutex
 	maxLen    int
 	// 数据提供商
-	dataProvider exchange.Provider
+	dataProvider market.Provider
 }
 
 // NewPriceSequence 返回一个新的价格序列
-func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration, maxLen int, dataProvider exchange.Provider) (Sequence[float64], error) {
+func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration, maxLen int, dataProvider market.Provider) (Sequence[float64], error) {
 	scale := int(bar / Frequency)
 	ps := &PriceSequence{
 		base:         base,
@@ -45,7 +45,7 @@ func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration
 func (ps *PriceSequence) initHistory(ctx context.Context) error {
 	// 请求历史数据 (bar * maxLen) (因为获取的时间精度是 1m 的，所以这里的 bar 如果是 15m，那么就是 15*maxLen)
 	aft := ""
-	var tmpTicks []*exchange.PriceTick
+	var tmpTicks []*market.PriceTick
 
 	curLim := ps.dataProvider.GetMaxHistoryLimit()
 	if curLim > ps.maxLen {

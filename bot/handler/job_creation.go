@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
-	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/market"
 	"strings"
 	"time"
 
@@ -142,7 +142,7 @@ func (handler *BotHandler) promptProvider(title string, chatID int64) {
 		"交易": "🏛️",
 	}[title]
 
-	providers := exchange.ListAvailableProviders()
+	providers := market.ListAvailableProviders()
 	var providerList strings.Builder
 	for _, p := range providers {
 		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))

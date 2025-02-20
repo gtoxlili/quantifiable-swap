@@ -52,7 +52,7 @@ The project is written in Go with minimal dependencies and can run on multiple p
    - Each Provider supports fetching historical K-lines and placing market orders, applicable to both spot and futures trading.
 
 3. **Comprehensive Technical Indicators**  
-   - Built-in calculations for common indicators like RSI and MA, implemented in an extensible way (within the quantifiable folder).  
+   - Built-in calculations for common indicators like RSI and MA, implemented in an extensible way (within the indicator folder).  
    - Adopts methods like sliding windows or caching to efficiently compute the latest indicator values.
 
 4. **Flexible Notification & Logging System**  
@@ -73,7 +73,7 @@ The project is written in Go with minimal dependencies and can run on multiple p
 - Enables creation, deletion, start, and stop actions for Jobs either via configuration or dynamic calls.  
 - Each Job corresponds to one trading strategy and a list of subscribers, executing tasks independently and sending out log notifications.
 
-### [Data Providers](exchange)
+### [Data Providers](market)
 - Provides unified interfaces for various exchanges or data sources, including market data and order execution.  
 - OkxProvider, ByBitProvider, and PolymericProvider are implemented; others can be added as needed.  
 - Supports custom rate limiters, K-line data parsing, and handling order confirmations.
@@ -175,11 +175,11 @@ These tasks rely on variables injected into Taskfile.yml (e.g., TG_BOT_TOKEN, OK
    Change provider.name in config.yaml to the desired exchange identifier (okx / bybit / polymeric) to use the corresponding Provider.
 
 2. **How do I add a new indicator or custom logic?**  
-   - Create a new file under quantifiable/ for indicator calculations, referencing existing RSI or MA implementations.  
+   - Create a new file under indicator/ for indicator calculations, referencing existing RSI or MA implementations.  
    - Incorporate it into your strategy logic by integrating with Job scheduling.
 
 3. **What if I encounter API timeouts or rate limits?**  
-   The provider/ modules implement basic limiters and retry mechanisms. You can add custom retry logic or exponential backoff as needed.
+   The market/ modules implement basic limiters and retry mechanisms. You can add custom retry logic or exponential backoff as needed.
 
 4. **How to handle too many or too few log notifications?**  
    - Adjust logging behavior and levels in logger.go or the Job’s notification triggers.  
@@ -196,7 +196,7 @@ For more details, see the LICENSE file in the repository.
 
 ## More Info
 
-- For deeper insights into each exchange API or strategy logic, refer to the relevant provider files or indicator implementations under quantifiable/.  
+- For deeper insights into each exchange API or strategy logic, refer to the relevant provider files or indicator implementations under indicator/.  
 - main.go provides the application’s entry point, where initialization, configuration loading, and Bot startup procedures are orchestrated.  
 - Feel free to open an issue for any questions or suggestions.  
 

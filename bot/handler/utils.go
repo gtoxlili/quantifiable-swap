@@ -5,7 +5,7 @@ import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
-	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/market"
 	"strconv"
 	"strings"
 )
@@ -69,7 +69,7 @@ func validateProviderInput(input string) (string, error) {
 		return "", fmt.Errorf("❌ <b>输入错误</b>\n\n<i>提供商名称不能为空</i>")
 	}
 
-	availableProviders := exchange.ListAvailableProviders()
+	availableProviders := market.ListAvailableProviders()
 	for _, p := range availableProviders {
 		if strings.EqualFold(p, prov) {
 			return p, nil // 返回标准格式的提供商名称
