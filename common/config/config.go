@@ -33,7 +33,7 @@ type Job struct {
 }
 
 func (j *Job) GetId() string {
-	return strings.ToLower(j.Provider.Name + "_" + j.Type + "_" + j.Symbol.Base + j.Symbol.Quote + "_" + j.Bar)
+	return strings.ToUpper(j.Provider.Name + "·" + j.Type + "·" + j.Symbol.Base + "/" + j.Symbol.Quote + "·" + j.Bar)
 }
 
 func (j *Job) Validate(skip ...string) error {
