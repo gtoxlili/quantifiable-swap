@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/provider"
 	"strconv"
 	"strings"
 )
@@ -60,6 +61,26 @@ func validateAmountInput(input string) (float64, float64, error) {
 		return 0, 0, fmt.Errorf("❌ <b>数值错误</b>\n\n<i>交易数量必须大于0</i>")
 	}
 	return buyAmount, sellAmount, nil
+}
+
+func validateProviderInput(input string) (string, error) {
+	prov := strings.TrimSpace(input)
+	if prov == "" {
+		return "", fmt.Errorf("❌ <b>输入错误</b>\n\n<i>提供商名称不能为空</i>")
+	}
+
+	availableProviders := provider.ListAvailableProviders()
+	for _, p := range availableProviders {
+		if strings.EqualFold(p, prov) {
+			return p, nil // 返回标准格式的提供商名称
+		}
+	}
+	var providerList strings.Builder
+	for _, p := range availableProviders {
+		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))
+	}
+
+	return "", fmt.Errorf("❌ <b>无效的提供商</b>\n\n支持的提供商：\n%s", providerList.String())
 }
 
 func formatJobPreview(job config.Job) string {

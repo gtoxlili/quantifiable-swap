@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/provider"
 	"strings"
 	"time"
 
@@ -60,7 +61,12 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		session.Step++
 		handler.promptProvider("数据", chatID)
 	case 3:
-		session.TempJob.Provider.Name = strings.TrimSpace(msg.Text)
+		prov, err := validateProviderInput(msg.Text)
+		if err != nil {
+			handler.sendMessage(chatID, err.Error())
+			return
+		}
+		session.TempJob.Provider.Name = prov
 		if session.TempJob.Type == "notify" {
 			session.Step = 5
 			handler.promptBarInterval(chatID)
@@ -69,8 +75,13 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		session.Step++
 		handler.promptProvider("交易", chatID)
 	case 4:
-		if msg.Text != session.TempJob.Provider.Name {
-			session.TempJob.Provider.InjectOrder = strings.TrimSpace(msg.Text)
+		prov, err := validateProviderInput(msg.Text)
+		if err != nil {
+			handler.sendMessage(chatID, err.Error())
+			return
+		}
+		if prov != session.TempJob.Provider.Name {
+			session.TempJob.Provider.InjectOrder = prov
 		}
 		session.Step++
 		handler.promptBarInterval(chatID)
@@ -128,7 +139,15 @@ func (handler *BotHandler) promptProvider(title string, chatID int64) {
 		"数据": "📡",
 		"交易": "🏛️",
 	}[title]
-	handler.sendMessage(chatID, fmt.Sprintf("%s <b>选择%s提供商</b>", icon, title))
+
+	providers := provider.ListAvailableProviders()
+	var providerList strings.Builder
+	for _, p := range providers {
+		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))
+	}
+
+	handler.sendMessage(chatID, fmt.Sprintf("%s <b>选择%s提供商</b>\n\n"+
+		"支持的提供商：\n%s", icon, title, providerList.String()))
 }
 
 func (handler *BotHandler) promptBarInterval(chatID int64) {

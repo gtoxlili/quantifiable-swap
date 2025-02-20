@@ -41,3 +41,12 @@ func init() {
 func NewProvider(name string) Provider {
 	return providers[strings.ToLower(name)]
 }
+
+// ListAvailableProviders returns a list of all registered provider names
+func ListAvailableProviders() []string {
+	var names []string
+	for name := range providers {
+		names = append(names, name)
+	}
+	return names
+}
