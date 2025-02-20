@@ -68,22 +68,22 @@ The project is written in Go with minimal dependencies and can run on multiple p
 
 ## Core Modules
 
-### [Job Management](common/job)
+### [Job Management](job)
 - Defines the Job structure and the Manager.  
 - Enables creation, deletion, start, and stop actions for Jobs either via configuration or dynamic calls.  
 - Each Job corresponds to one trading strategy and a list of subscribers, executing tasks independently and sending out log notifications.
 
-### [Data Providers](provider)
+### [Data Providers](exchange)
 - Provides unified interfaces for various exchanges or data sources, including market data and order execution.  
 - OkxProvider, ByBitProvider, and PolymericProvider are implemented; others can be added as needed.  
 - Supports custom rate limiters, K-line data parsing, and handling order confirmations.
 
-### [Technical Indicators](quantifiable)
+### [Technical Indicators](indicator)
 - Houses the logic for various indicators, for instance, RSI and MA.  
 - Offers a standardized Indicator interface that supports custom and compound indicators.  
 - Easily referenced or combined in trading strategies.
 
-### [Logging System](common/logger)
+### [Logging System](logger)
 - Exposes a unified Logger interface with configurable outputs: console, Telegram, Bark, etc.  
 - Supports info, warn, and error levels, where higher levels may trigger alerts (e.g., pinned messages in Telegram).  
 - Integrates `pretty` console/tglog/bark modules for flexible rendering and distribution of logs.
@@ -134,7 +134,7 @@ In the project root directory, you can either use the Taskfile or manually use g
 ### 4. Configuration File
 Below is a simplified sample of config.yaml:
 ```yaml
-- type: swap
+- type: trader
   provider:
     name: "okx"
     injectOrder: ""
@@ -145,7 +145,7 @@ Below is a simplified sample of config.yaml:
   Subscribers: [584544685]  # List of Telegram IDs
 ```
 
-- type: Strategy or task type, e.g., swap, notify, etc.  
+- type: Strategy or task type, e.g., trader, monitor, etc.  
 - provider: Specifies the data provider (okx, bybit, etc.) and optionally an injectOrder provider.  
 - symbol: Base/quote pair.  
 - bar: Candlestick timeframe.  

@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"github.com/gtoxlili/quantifiable-swap/bot"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/bark"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/console"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty/tglog"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty/bark"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty/console"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty/tglog"
 	"github.com/rs/zerolog"
 	"io"
 	"os"
@@ -48,11 +48,11 @@ func init() {
 	}
 }
 
-// NewSwapLogger 创建一个新的 Logger 单例实例。
-func NewSwapLogger(instID, dataProvider string, barMinutes int) *Logger {
+// NewTraderLogger 创建一个新的 Logger 单例实例。
+func NewTraderLogger(instID, dataProvider string, barMinutes int) *Logger {
 	return &Logger{
 		log: l.log.With().
-			Str("type", "swap").     // 日志类型
+			Str("type", "trader").   // 日志类型
 			Str("ID", instID).       // 实例ID
 			Str("DP", dataProvider). // 数据源
 			Int("Bar", barMinutes).  // K线周期（分钟）

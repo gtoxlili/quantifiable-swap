@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"io"
 	"strings"
 )
@@ -46,8 +46,8 @@ func formatLogEntry(logData pretty.LogData) []byte {
 	b := &bytes.Buffer{}
 
 	typ := logData["type"]
-	if typ == "swap" {
-		handlePrefix(b, logData)
+	if typ == "trader" {
+		handleTraderPrefix(b, logData)
 		divider(b)
 	} else {
 		handleGeneralPrefix(b, logData)
@@ -106,7 +106,7 @@ func handleGeneralPrefix(b *bytes.Buffer, data pretty.LogData) {
 	}
 }
 
-func handlePrefix(b *bytes.Buffer, data pretty.LogData) {
+func handleTraderPrefix(b *bytes.Buffer, data pretty.LogData) {
 	if instID, ok := data["ID"]; ok {
 		b.WriteString(formatSegment(instID.(string), colorCyan))
 		delete(data, "ID")

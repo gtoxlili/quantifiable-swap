@@ -1,4 +1,4 @@
-package swap
+package trading
 
 import (
 	"golang.org/x/tools/container/intsets"
@@ -13,7 +13,7 @@ func TestDefaultCanSell(t *testing.T) {
 		40, 65, 75, // 升到>70，触发卖出
 	}
 	curRSI := 28.0
-	lastBuyTrade := &LastTrade{
+	lastBuyTrade := &TradeSnapshot{
 		OrderTime: time.Unix(0, 0),
 		RSI:       float64(intsets.MaxInt),
 		Price:     float64(intsets.MaxInt),
@@ -21,10 +21,10 @@ func TestDefaultCanSell(t *testing.T) {
 
 	bar := time.Minute
 
-	err := defaultCanSell(TradeCondition{
+	err := defaultCanSell(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
-		lst:      lastBuyTrade,
+		snapshot: lastBuyTrade,
 		bar:      bar,
 	})
 	assert.Nil(t, err)
@@ -33,13 +33,13 @@ func TestDefaultCanSell(t *testing.T) {
 func TestDefaultCanSell_NotEnoughData(t *testing.T) {
 	rsiQueue := []float64{60, 65, -1, 75, 80}
 	curRSI := 65.0
-	lastTrade := &LastTrade{OrderTime: time.Unix(0, 0)}
+	lastTrade := &TradeSnapshot{OrderTime: time.Unix(0, 0)}
 	bar := time.Minute
 
-	err := defaultCanSell(TradeCondition{
+	err := defaultCanSell(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
-		lst:      lastTrade,
+		snapshot: lastTrade,
 		bar:      bar,
 	})
 	assert.NotNil(t, err)
@@ -49,13 +49,13 @@ func TestDefaultCanSell_NotEnoughData(t *testing.T) {
 func TestDefaultCanSell_NotMeetingSellCondition(t *testing.T) {
 	rsiQueue := []float64{60, 65, 70, 75, 80}
 	curRSI := 85.0
-	lastTrade := &LastTrade{OrderTime: time.Unix(0, 0)}
+	lastTrade := &TradeSnapshot{OrderTime: time.Unix(0, 0)}
 	bar := time.Minute
 
-	err := defaultCanSell(TradeCondition{
+	err := defaultCanSell(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
-		lst:      lastTrade,
+		snapshot: lastTrade,
 		bar:      bar,
 	})
 	assert.NotNil(t, err)
@@ -66,7 +66,7 @@ func TestDefaultCanSell_SellTooFrequent(t *testing.T) {
 	rsiQueue := []float64{60, 65, 70, 75, 80}
 	curRSI := 65.0
 
-	lastTrade := &LastTrade{
+	lastTrade := &TradeSnapshot{
 		OrderTime: time.Now(),
 		// rsi 取一个极大值
 		RSI:   float64(intsets.MaxInt),
@@ -74,14 +74,14 @@ func TestDefaultCanSell_SellTooFrequent(t *testing.T) {
 	}
 	bar := time.Minute
 
-	// time.Since(lst.OrderTime) <= 4*bar && curRSI < 1.2*lst.RSI
+	// time.Since(snapshot.OrderTime) <= 4*bar && curRSI < 1.2*snapshot.RSI
 	assert.True(t, time.Since(lastTrade.OrderTime) <= 4*bar)
 	assert.True(t, curRSI < 1.2*lastTrade.RSI)
 
-	err := defaultCanSell(TradeCondition{
+	err := defaultCanSell(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
-		lst:      lastTrade,
+		snapshot: lastTrade,
 		bar:      bar,
 	})
 	assert.NotNil(t, err)
@@ -92,21 +92,21 @@ func TestDefaultCanBuy_BuyTooFrequent(t *testing.T) {
 	rsiQueue := []float64{30, 25, 20, 15, 10}
 	curRSI := 20.0
 
-	lastTrade := &LastTrade{
+	lastTrade := &TradeSnapshot{
 		OrderTime: time.Now(),
 		RSI:       float64(intsets.MinInt),
 		Price:     float64(intsets.MinInt),
 	}
 	bar := time.Minute
 
-	// time.Since(lst.OrderTime) <= 4*bar && 1.2*curRSI > lst.RSI
+	// time.Since(snapshot.OrderTime) <= 4*bar && 1.2*curRSI > snapshot.RSI
 	assert.True(t, time.Since(lastTrade.OrderTime) <= 4*bar)
 	assert.True(t, 1.2*curRSI > lastTrade.RSI)
 
-	err := defaultCanBuy(TradeCondition{
+	err := defaultCanBuy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
-		lst:      lastTrade,
+		snapshot: lastTrade,
 		bar:      bar,
 	})
 	assert.NotNil(t, err)

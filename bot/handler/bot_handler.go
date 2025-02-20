@@ -2,9 +2,9 @@ package handler
 
 import (
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/gtoxlili/quantifiable-swap/common/job"
-	"github.com/gtoxlili/quantifiable-swap/common/logger"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"github.com/gtoxlili/quantifiable-swap/job"
+	"github.com/gtoxlili/quantifiable-swap/logger"
 )
 
 // NewBotHandler constructs a new BotHandler with the given bot API and job manager.

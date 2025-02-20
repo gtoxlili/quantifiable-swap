@@ -1,5 +1,5 @@
 # Configuration for multiple trading and notification jobs
-- type: swap
+- type: trader
   symbol:
     base: eth
     quote: usdt
@@ -10,7 +10,7 @@
   provider:
     name: okx
 
-- type: swap
+- type: trader
   symbol:
     base: eth
     quote: usdt
@@ -22,7 +22,7 @@
     name: binance
     inject_order: okx
 
-- type: swap
+- type: trader
   symbol:
     base: eth
     quote: usdt
@@ -34,7 +34,7 @@
     name: binance
     inject_order: okx
 
-- type: swap
+- type: trader
   symbol:
     base: aero
     quote: usdt
@@ -45,7 +45,7 @@
   provider:
     name: bybit
 
-- type: notify
+- type: monitor
   symbol:
     base: btc
     quote: usdt
@@ -53,7 +53,7 @@
   provider:
     name: binance
 
-- type: swap
+- type: trader
   symbol:
     base: aero
     quote: usdt

@@ -1,95 +1,100 @@
-package swap
+package trading
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
-	"github.com/gtoxlili/quantifiable-swap/common/logger"
-	"github.com/gtoxlili/quantifiable-swap/provider"
-	"github.com/gtoxlili/quantifiable-swap/quantifiable"
+	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/indicator"
+	"github.com/gtoxlili/quantifiable-swap/logger"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/tools/container/intsets"
 	"strings"
 	"time"
 )
 
-// LastTrade 最后一次 购买/卖出 的快照
-type LastTrade struct {
+// IStrategyExecutor 接口
+type IStrategyExecutor interface {
+	Run(ctx context.Context)
+	WithSubscribers(subscribers []int64)
+	RunWithCustomPeriod(ctx context.Context, period int)
+}
+
+// TradeSnapshot 最后一次 购买/卖出 的快照
+type TradeSnapshot struct {
 	OrderTime time.Time
 	Price     float64
 	RSI       float64
 }
 
-// IndicatorWaper manages Indicator-based auto-trading logic
-type IndicatorWaper struct {
-	lastSellTrade *LastTrade
-	lastBuyTrade  *LastTrade
+// StrategyExecutor manages Indicator-based auto-trading logic
+type StrategyExecutor struct {
+	lastSellSnapshot *TradeSnapshot
+	lastBuySnapshot  *TradeSnapshot
 
-	base  string
-	quote string
-
+	base       string
+	quote      string
 	bar        time.Duration
 	sellAmount float64
 	buyAmount  float64
 	autoTrade  bool
 
 	// 判断是否自动下单的函数
-	canSell func(tc TradeCondition) error
-	canBuy  func(tc TradeCondition) error
+	sellStrategy func(tc TradeContext) error
+	buyStrategy  func(tc TradeContext) error
 
-	dataProvider provider.Provider
-
-	log *logger.Logger
+	dataProvider exchange.Provider
+	log          *logger.Logger
 }
 
-// NewNotify 不进行自动下单的 Waper （只提醒）
-func NewNotify(base, quote string, bar time.Duration, dataProvider provider.Provider) IIndicatorWaper {
-	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
+// NewMonitor 不进行自动下单的 executor （只提醒）
+func NewMonitor(base, quote string, bar time.Duration, dataProvider exchange.Provider) IStrategyExecutor {
+	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
 }
 
-// NewWaper creates a new Waper instance
-func NewWaper(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider provider.Provider) IIndicatorWaper {
-	return NewIndicatorWaperWithCustomSellBuy(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
+// NewTrader creates a new executor instance
+func NewTrader(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider exchange.Provider) IStrategyExecutor {
+	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultCanSell, defaultCanBuy, dataProvider)
 }
 
-func NewIndicatorWaperWithCustomSellBuy(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeCondition) error, dataProvider provider.Provider) IIndicatorWaper {
-	ind := &IndicatorWaper{
+func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, canSell, canBuy func(tc TradeContext) error, dataProvider exchange.Provider) IStrategyExecutor {
+	ind := &StrategyExecutor{
 		base:         base,
 		quote:        quote,
 		bar:          bar,
 		sellAmount:   sellAmount,
 		buyAmount:    buyAmount,
 		autoTrade:    autoTrade,
-		canSell:      canSell,
-		canBuy:       canBuy,
+		sellStrategy: canSell,
+		buyStrategy:  canBuy,
 		dataProvider: dataProvider,
 
 		// 初始化快照
-		lastSellTrade: &LastTrade{
+		lastSellSnapshot: &TradeSnapshot{
 			OrderTime: time.Unix(0, 0),
 			RSI:       float64(intsets.MaxInt),
 			Price:     float64(intsets.MaxInt),
 		},
-		lastBuyTrade: &LastTrade{
+		lastBuySnapshot: &TradeSnapshot{
 			OrderTime: time.Unix(0, 0),
 			RSI:       float64(intsets.MinInt),
 			Price:     float64(intsets.MinInt),
 		},
 	}
-	ind.log = logger.NewSwapLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
+	ind.log = logger.NewTraderLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
 	return ind
 }
 
-func (r *IndicatorWaper) WithSubscribers(subscribers []int64) {
+func (r *StrategyExecutor) WithSubscribers(subscribers []int64) {
 	r.log = r.log.WithSubscribers(subscribers)
 }
 
-func (r *IndicatorWaper) Run(ctx context.Context) {
+func (r *StrategyExecutor) Run(ctx context.Context) {
 	r.RunWithCustomPeriod(ctx, 14)
 }
 
-func (r *IndicatorWaper) RunWithCustomPeriod(ctx context.Context, period int) {
+func (r *StrategyExecutor) RunWithCustomPeriod(ctx context.Context, period int) {
 	rsiHook, err := r.prepareIndicatorHook(ctx, period)
 	if err != nil {
 		r.log.PrintError(err, false)
@@ -98,20 +103,20 @@ func (r *IndicatorWaper) RunWithCustomPeriod(ctx context.Context, period int) {
 	r.runIndicatorLoop(ctx, rsiHook)
 }
 
-func (r *IndicatorWaper) prepareIndicatorHook(ctx context.Context, period int) (quantifiable.IndicatorDecorator[float64], error) {
+func (r *StrategyExecutor) prepareIndicatorHook(ctx context.Context, period int) (indicator.Decorator[float64], error) {
 	priceSeq, err := sequence.NewPriceSequence(ctx, r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
 	if err != nil {
 		return nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
 
-	return quantifiable.NewIndicatorBuilder(priceSeq).
+	return indicator.NewIndicatorBuilder(priceSeq).
 		WithMA(5).
 		WithMA(20).
 		WithRSI(period).
 		Build()
 }
 
-func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable.IndicatorDecorator[float64]) {
+func (r *StrategyExecutor) runIndicatorLoop(ctx context.Context, hook indicator.Decorator[float64]) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -152,18 +157,18 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 				continue
 			}
 
-			condition := TradeCondition{
+			condition := TradeContext{
 				rsiQueue: rsiHook.PreviousVals(),
 				curRSI:   curRSI,
-				lst:      nil,
+				snapshot: nil,
 				bar:      r.bar,
 				price:    candle.Value,
 				ma5:      ma5,
 				ma20:     ma20,
 			}
 
-			if err := r.canBuy(condition.Lst(r.lastBuyTrade)); err != nil {
-				if !errors.Is(err, ErrNotMeetBuyCondition) && !errors.Is(err, ErrInsufficientSampleData) {
+			if err := r.buyStrategy(condition.Snapshot(r.lastBuySnapshot)); err != nil {
+				if !errors.Is(err, ErrInvalidBuyCondition) && !errors.Is(err, ErrInsufficientData) {
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
@@ -172,14 +177,14 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 					r.log.PrintBuyFail(err)
 				} else {
 					r.log.PrintBuySuccess(candle.Value, curRSI, orderID)
-					r.lastBuyTrade.OrderTime = time.Now()
-					r.lastBuyTrade.Price = candle.Value
-					r.lastBuyTrade.RSI = curRSI
+					r.lastBuySnapshot.OrderTime = time.Now()
+					r.lastBuySnapshot.Price = candle.Value
+					r.lastBuySnapshot.RSI = curRSI
 				}
 			}
 
-			if err := r.canSell(condition.Lst(r.lastSellTrade)); err != nil {
-				if !errors.Is(err, ErrInsufficientSampleData) && !errors.Is(err, ErrNotMeetSellCondition) {
+			if err := r.sellStrategy(condition.Snapshot(r.lastSellSnapshot)); err != nil {
+				if !errors.Is(err, ErrInsufficientData) && !errors.Is(err, ErrInvalidSellCondition) {
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
@@ -188,9 +193,9 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 					r.log.PrintSellFail(err)
 				} else {
 					r.log.PrintSellSuccess(candle.Value, curRSI, orderID)
-					r.lastSellTrade.OrderTime = time.Now()
-					r.lastSellTrade.Price = candle.Value
-					r.lastSellTrade.RSI = curRSI
+					r.lastSellSnapshot.OrderTime = time.Now()
+					r.lastSellSnapshot.Price = candle.Value
+					r.lastSellSnapshot.RSI = curRSI
 				}
 			}
 		}
@@ -198,6 +203,6 @@ func (r *IndicatorWaper) runIndicatorLoop(ctx context.Context, hook quantifiable
 }
 
 // 美化打印交易对
-func (r *IndicatorWaper) printInstId() string {
+func (r *StrategyExecutor) printInstId() string {
 	return fmt.Sprintf("%s-%s", strings.ToUpper(r.base), strings.ToUpper(r.quote))
 }

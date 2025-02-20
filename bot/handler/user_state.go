@@ -3,8 +3,8 @@ package handler
 import (
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
-	"github.com/gtoxlili/quantifiable-swap/common/job"
 	"github.com/gtoxlili/quantifiable-swap/common/smap"
+	"github.com/gtoxlili/quantifiable-swap/job"
 	"github.com/rs/zerolog"
 )
 

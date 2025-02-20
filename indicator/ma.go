@@ -1,4 +1,4 @@
-package quantifiable
+package indicator
 
 import (
 	"context"

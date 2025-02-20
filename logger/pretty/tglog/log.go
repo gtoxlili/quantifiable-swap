@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
 	"github.com/gtoxlili/quantifiable-swap/constants"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"io"
@@ -78,7 +78,7 @@ func formatLogEntry(logData pretty.LogData) string {
 	typ := logData["type"].(string)
 
 	timeVal := getTime(logData)
-	if typ == "swap" {
+	if typ == "trader" {
 		// 基础信息块
 		id := fmt.Sprintf("%v", logData["ID"])
 		dp := fmt.Sprintf("%v", logData["DP"])
@@ -108,7 +108,7 @@ func formatLogEntry(logData pretty.LogData) string {
 	}
 
 	// 打印额外字段
-	if typ != "swap" {
+	if typ != "trader" {
 		handleExtraFields(b, logData)
 	}
 

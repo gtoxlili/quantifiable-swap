@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
-	"github.com/gtoxlili/quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/exchange"
 	"strings"
 	"time"
 
@@ -19,11 +19,11 @@ func (handler *BotHandler) initializeJobCreation(chatID int64) {
 	})
 }
 
-// 游客只能创建 notify 类型的任务
+// 游客只能创建 monitor 类型的任务
 func (handler *BotHandler) initializeJobCreationForGuest(chatID int64) {
 	handler.Sessions.Store(chatID, &SessionState{
 		CurrentAction: "action_create_job",
-		TempJob:       &config.Job{Type: "notify", Subscribers: []int64{chatID}},
+		TempJob:       &config.Job{Type: "monitor", Subscribers: []int64{chatID}},
 		Step:          1,
 	})
 }
@@ -43,7 +43,7 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		}
 		session.TempJob.Symbol.Base = base
 		session.TempJob.Symbol.Quote = quote
-		if session.TempJob.Type == "notify" {
+		if session.TempJob.Type == "monitor" {
 			session.Step = 3
 			handler.promptProvider("数据", chatID)
 			return
@@ -67,7 +67,7 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 			return
 		}
 		session.TempJob.Provider.Name = prov
-		if session.TempJob.Type == "notify" {
+		if session.TempJob.Type == "monitor" {
 			session.Step = 5
 			handler.promptBarInterval(chatID)
 			return
@@ -112,10 +112,10 @@ func (handler *BotHandler) showJobPreview(chatID int64, job config.Job) {
 func (handler *BotHandler) promptJobType(chatID int64) {
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
-			tgApi.NewInlineKeyboardButtonData("SWAP", "type_swap"),
+			tgApi.NewInlineKeyboardButtonData("TRADER", "type_trader"),
 		),
 		tgApi.NewInlineKeyboardRow(
-			tgApi.NewInlineKeyboardButtonData("NOTIFY", "type_notify"),
+			tgApi.NewInlineKeyboardButtonData("MONITOR", "type_monitor"),
 		),
 	)
 	handler.sendMessageWithMarkup(chatID, "📝 <b>选择任务类型</b>", keyboard)
@@ -142,7 +142,7 @@ func (handler *BotHandler) promptProvider(title string, chatID int64) {
 		"交易": "🏛️",
 	}[title]
 
-	providers := provider.ListAvailableProviders()
+	providers := exchange.ListAvailableProviders()
 	var providerList strings.Builder
 	for _, p := range providers {
 		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))

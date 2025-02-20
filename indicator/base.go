@@ -1,25 +1,25 @@
-package quantifiable
+package indicator
 
 import (
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 )
 
-type IndicatorBuilder[T Number] struct {
+type Builder[T Number] struct {
 	seq     sequence.Sequence[T]
-	metrics map[string]IndicatorMetrics[T]
+	metrics map[string]Metrics[T]
 
 	err error
 }
 
-func NewIndicatorBuilder[T Number](seq sequence.Sequence[T]) *IndicatorBuilder[T] {
-	return &IndicatorBuilder[T]{
+func NewIndicatorBuilder[T Number](seq sequence.Sequence[T]) *Builder[T] {
+	return &Builder[T]{
 		seq:     seq,
-		metrics: make(map[string]IndicatorMetrics[T]),
+		metrics: make(map[string]Metrics[T]),
 	}
 }
 
-func (b *IndicatorBuilder[T]) WithRSI(period int) *IndicatorBuilder[T] {
+func (b *Builder[T]) WithRSI(period int) *Builder[T] {
 	if b.err != nil {
 		return b
 	}
@@ -32,7 +32,7 @@ func (b *IndicatorBuilder[T]) WithRSI(period int) *IndicatorBuilder[T] {
 	return b
 }
 
-func (b *IndicatorBuilder[T]) WithMA(window int) *IndicatorBuilder[T] {
+func (b *Builder[T]) WithMA(window int) *Builder[T] {
 	if b.err != nil {
 		return b
 	}
@@ -45,7 +45,7 @@ func (b *IndicatorBuilder[T]) WithMA(window int) *IndicatorBuilder[T] {
 	return b
 }
 
-func (b *IndicatorBuilder[T]) WithCustom(name string, fn func(seq sequence.Sequence[T]) (Indicator[T], error)) *IndicatorBuilder[T] {
+func (b *Builder[T]) WithCustom(name string, fn func(seq sequence.Sequence[T]) (Indicator[T], error)) *Builder[T] {
 	if b.err != nil {
 		return b
 	}
@@ -58,22 +58,22 @@ func (b *IndicatorBuilder[T]) WithCustom(name string, fn func(seq sequence.Seque
 	return b
 }
 
-func (b *IndicatorBuilder[T]) Build() (IndicatorDecorator[T], error) {
+func (b *Builder[T]) Build() (Decorator[T], error) {
 	if b.err != nil {
 		return nil, b.err
 	}
-	return &IndicatorSet[T]{
+	return &Set[T]{
 		Sequence: b.seq,
 		metrics:  b.metrics,
 	}, nil
 }
 
-type IndicatorSet[T Number] struct {
+type Set[T Number] struct {
 	sequence.Sequence[T]
-	metrics map[string]IndicatorMetrics[T]
+	metrics map[string]Metrics[T]
 }
 
-func (s *IndicatorSet[T]) Indicator(name string) (IndicatorMetrics[T], error) {
+func (s *Set[T]) Indicator(name string) (Metrics[T], error) {
 	if m, ok := s.metrics[name]; ok {
 		return m, nil
 	}

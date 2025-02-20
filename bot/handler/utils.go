@@ -5,7 +5,7 @@ import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
-	"github.com/gtoxlili/quantifiable-swap/provider"
+	"github.com/gtoxlili/quantifiable-swap/exchange"
 	"strconv"
 	"strings"
 )
@@ -69,7 +69,7 @@ func validateProviderInput(input string) (string, error) {
 		return "", fmt.Errorf("❌ <b>输入错误</b>\n\n<i>提供商名称不能为空</i>")
 	}
 
-	availableProviders := provider.ListAvailableProviders()
+	availableProviders := exchange.ListAvailableProviders()
 	for _, p := range availableProviders {
 		if strings.EqualFold(p, prov) {
 			return p, nil // 返回标准格式的提供商名称
@@ -91,7 +91,7 @@ func formatJobPreview(job config.Job) string {
 		"%s" + // placeholder for type-specific info
 		"⏱️ 采样间隔: <code>%s</code>"
 
-	if job.Type == "notify" {
+	if job.Type == "monitor" {
 		msgText = fmt.Sprintf(baseFormat,
 			job.String(), job.Type, job.Symbol.Base, job.Symbol.Quote,
 			fmt.Sprintf("📡 数据提供商: <code>%s</code>\n", job.Provider.Name),

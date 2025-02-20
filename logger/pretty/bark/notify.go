@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
-	"github.com/gtoxlili/quantifiable-swap/common/logger/pretty"
+	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,7 +43,7 @@ func (w *NotifyWriter) processEntries() {
 			continue
 		}
 		// 只对交易日志发送通知
-		if typ, ok := logData["type"].(string); !ok || typ != "swap" {
+		if typ, ok := logData["type"].(string); !ok || typ != "trader" {
 			continue
 		}
 		// 只对 warn 和 error 级别的日志发送通知

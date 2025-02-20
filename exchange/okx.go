@@ -1,4 +1,4 @@
-package provider
+package exchange
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ type OkxProvider struct {
 	latestPriceURL string
 	historyURL     string
 	apiKey         string
-	secrectKey     string
+	secretKey      string
 	passphrase     string
 
 	limiter limiter.RateLimiter
@@ -33,7 +33,7 @@ func NewOkx() Provider {
 		latestPriceURL: "https://www.okx.com/api/v5/market/index-tickers?instId=%s",
 		historyURL:     "https://www.okx.com/api/v5/market/history-index-candles?instId=%s&bar=1m&limit=%d",
 		apiKey:         constants.OkxAPIKey,
-		secrectKey:     constants.OkxSecretKey,
+		secretKey:      constants.OkxSecretKey,
 		passphrase:     constants.OkxPassphrase,
 		// OKX (欧易):
 		// - Limit: 20 requests every 2 seconds => 10 requests per second.
@@ -202,7 +202,7 @@ func (o *OkxProvider) fetchOkxAuthRequest(method, requestPath string, body []byt
 	// 获取当前时间
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	// 生成 OK-ACCESS-SIGN
-	sign, err := common.HmacSha256Sign(timestamp+method+requestPath+string(body), o.secrectKey)
+	sign, err := common.HmacSha256Sign(timestamp+method+requestPath+string(body), o.secretKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signature: %v", err)
 	}

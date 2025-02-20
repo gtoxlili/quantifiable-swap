@@ -7,17 +7,17 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/common/smap"
 	"github.com/gtoxlili/quantifiable-swap/constants"
-	"github.com/gtoxlili/quantifiable-swap/provider"
-	"github.com/gtoxlili/quantifiable-swap/swap"
+	"github.com/gtoxlili/quantifiable-swap/exchange"
+	"github.com/gtoxlili/quantifiable-swap/trading"
 	"golang.org/x/exp/slices"
 	"time"
 )
 
 // Job Map Value 的结构
 type Job struct {
-	conf   *config.Job
-	waper  swap.IIndicatorWaper
-	cancel context.CancelFunc
+	conf     *config.Job
+	executor trading.IStrategyExecutor
+	cancel   context.CancelFunc
 }
 
 // Manager 用于管理 Job 的添加、删除和执行
@@ -43,16 +43,16 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		}
 		subscribers = append(subscribers, j.Subscribers[0])
 		job.conf.Subscribers = subscribers
-		job.waper.WithSubscribers(subscribers)
+		job.executor.WithSubscribers(subscribers)
 		return j.String(), nil
 	}
 
-	prov := provider.NewProvider(j.Provider.Name)
+	prov := exchange.NewProvider(j.Provider.Name)
 	if prov == nil {
 		return "", fmt.Errorf("未知的 Provider: %s", j.Provider.Name)
 	}
 	if j.Provider.InjectOrder != "" {
-		injectProv := provider.NewProvider(j.Provider.InjectOrder)
+		injectProv := exchange.NewProvider(j.Provider.InjectOrder)
 		if injectProv == nil {
 			return "", fmt.Errorf("未知的 InjectOrder Provider: %s", j.Provider.InjectOrder)
 		}
@@ -64,12 +64,12 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		return "", fmt.Errorf("非法的 K 线周期: %s", j.Bar)
 	}
 
-	var waper swap.IIndicatorWaper
+	var executor trading.IStrategyExecutor
 	switch j.Type {
-	case "notify":
-		waper = swap.NewNotify(j.Symbol.Base, j.Symbol.Quote, bar, prov)
-	case "swap":
-		waper = swap.NewWaper(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
+	case "monitor":
+		executor = trading.NewMonitor(j.Symbol.Base, j.Symbol.Quote, bar, prov)
+	case "trader":
+		executor = trading.NewTrader(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
 	default:
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}
@@ -81,10 +81,10 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		}
 	}
 
-	waper.WithSubscribers(j.Subscribers)
+	executor.WithSubscribers(j.Subscribers)
 	m.jobs.Store(j.String(), &Job{
-		conf:  &j,
-		waper: waper,
+		conf:     &j,
+		executor: executor,
 	})
 
 	return j.String(), nil
@@ -110,7 +110,7 @@ func (m *Manager) Unsubscribe(id string, chatID int64) error {
 			return m.DeleteJob(id)
 		}
 		job.conf.Subscribers = subscribers
-		job.waper.WithSubscribers(subscribers)
+		job.executor.WithSubscribers(subscribers)
 		return nil
 	}
 	return fmt.Errorf("job %s 不存在", id)
@@ -131,7 +131,7 @@ func (m *Manager) StartJob(id string) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		job.cancel = cancel
 		go func() {
-			job.waper.Run(ctx)
+			job.executor.Run(ctx)
 			_ = m.StopJob(id)
 		}()
 		return nil
