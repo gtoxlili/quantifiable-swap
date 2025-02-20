@@ -124,11 +124,7 @@ func formatSubscribers(bot *tgApi.BotAPI, subs []int64) string {
 		if err != nil || !chat.IsPrivate() {
 			continue
 		}
-		displayName := chat.FirstName
-		if chat.LastName != "" {
-			displayName += " " + chat.LastName
-		}
-		builder.WriteString(fmt.Sprintf("<a href=\"tg://user?id=%d\">%s</a> ", sub, displayName))
+		builder.WriteString(fmt.Sprintf("@%s ", chat.UserName))
 	}
 	// 删除最后一个空格
 	builder.Truncate(builder.Len() - 1)
