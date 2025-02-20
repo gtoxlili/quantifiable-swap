@@ -5,6 +5,7 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"gopkg.in/yaml.v3"
 	"os"
+	"strings"
 )
 
 type Symbol struct {
@@ -32,7 +33,7 @@ type Job struct {
 }
 
 func (j *Job) GetId() string {
-	return j.Provider.Name + "_" + j.Type + "_" + j.Symbol.Base + j.Symbol.Quote + "_" + j.Bar
+	return strings.ToLower(j.Provider.Name + "_" + j.Type + "_" + j.Symbol.Base + j.Symbol.Quote + "_" + j.Bar)
 }
 
 func (j *Job) Validate(skip ...string) error {

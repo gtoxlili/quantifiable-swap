@@ -113,6 +113,8 @@ func (handler *BotHandler) promptJobType(chatID int64) {
 	keyboard := tgApi.NewInlineKeyboardMarkup(
 		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData("SWAP", "type_swap"),
+		),
+		tgApi.NewInlineKeyboardRow(
 			tgApi.NewInlineKeyboardButtonData("NOTIFY", "type_notify"),
 		),
 	)
