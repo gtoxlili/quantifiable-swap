@@ -14,13 +14,6 @@ import (
 	"time"
 )
 
-// IIndicatorWaper 接口
-type IIndicatorWaper interface {
-	Run(ctx context.Context)
-	WithSubscribers(subscribers []int64)
-	RunWithCustomPeriod(ctx context.Context, period int)
-}
-
 // LastTrade 最后一次 购买/卖出 的快照
 type LastTrade struct {
 	OrderTime time.Time

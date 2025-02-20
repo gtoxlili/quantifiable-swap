@@ -1,25 +1,9 @@
 package quantifiable
 
 import (
-	"context"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
-	"golang.org/x/exp/constraints"
 )
-
-type Number interface {
-	constraints.Integer | constraints.Float
-}
-
-type IndicatorMetrics[T Number] interface {
-	CurrentVal() float64
-	PreviousVals() []float64
-}
-
-type Indicator[T Number] interface {
-	sequence.Sequence[T]
-	IndicatorMetrics[T]
-}
 
 type IndicatorBuilder[T Number] struct {
 	seq     sequence.Sequence[T]
@@ -72,11 +56,6 @@ func (b *IndicatorBuilder[T]) WithCustom(name string, fn func(seq sequence.Seque
 	b.seq = ind
 	b.metrics[name] = ind
 	return b
-}
-
-type IndicatorDecorator[T Number] interface {
-	Update(ctx context.Context) (*sequence.Candle[T], error)
-	Indicator(name string) (IndicatorMetrics[T], error)
 }
 
 func (b *IndicatorBuilder[T]) Build() (IndicatorDecorator[T], error) {
