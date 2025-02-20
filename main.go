@@ -25,7 +25,7 @@ type App struct {
 
 func NewApp(configPath string) *App {
 	return &App{
-		log:        logger.NewGeneralLogger(),
+		log:        logger.NewLogger("startup"),
 		configPath: configPath,
 		manager:    job.NewManager(),
 		bot:        bot.Bot,

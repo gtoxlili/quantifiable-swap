@@ -60,10 +60,9 @@ func NewSwapLogger(instID, dataProvider string, barMinutes int) *Logger {
 	}
 }
 
-// NewGeneralLogger 打印代码逻辑中的日志
-func NewGeneralLogger() zerolog.Logger {
+func NewLogger(typ string) zerolog.Logger {
 	return l.log.With().
-		Str("type", "general"). // 日志类型
+		Str("type", typ). // 日志类型
 		Logger()
 }
 

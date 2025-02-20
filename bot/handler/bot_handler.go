@@ -13,7 +13,7 @@ func NewBotHandler(bot *tgApi.BotAPI, manager job.IManager) *BotHandler {
 		BotAPI:     bot,
 		OwnerID:    constants.TGChatID,
 		JobManager: manager,
-		Logger:     logger.NewGeneralLogger(),
+		Logger:     logger.NewLogger("bot"),
 	}
 }
 

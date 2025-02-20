@@ -97,6 +97,9 @@ func handleGeneralPrefix(b *bytes.Buffer, data pretty.LogData) {
 		b.WriteString(formatSegment(strings.ToUpper(level), hashColor(level)))
 		delete(data, "level")
 	}
+	if typ, ok := data["type"].(string); ok {
+		b.WriteString(formatSegment(strings.ToUpper(typ), hashColor(typ)))
+	}
 	if t, ok := data["time"].(string); ok {
 		b.WriteString(formatSegment(t, colorDarkGray))
 		delete(data, "time")

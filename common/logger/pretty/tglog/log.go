@@ -94,7 +94,7 @@ func formatLogEntry(logData pretty.LogData) string {
 		}
 		b.WriteString(fmt.Sprintf("⌛ Bar: <code>%sm</code>\n\n", bar))
 	} else {
-		b.WriteString("⚙️ <b>General</b>\n\n")
+		handleHeader(b, typ)
 		b.WriteString(fmt.Sprintf("⏰ 系统时间: <code>%s</code>\n", timeVal))
 		b.WriteString(fmt.Sprintf("📌 日志级别: <code>%s</code>\n\n", cases.Title(language.English).String(logData["level"].(string))))
 	}
@@ -233,4 +233,24 @@ func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 		}
 		b.WriteString(fmt.Sprintf("💭 %s: <code>%v</code>\n", k, v))
 	}
+}
+
+// 打印标头
+func handleHeader(b *bytes.Buffer, typ string) {
+	icon := map[string]string{
+		"bot":     "🤖",
+		"startup": "🚀",
+		"http":    "🌐",
+		"db":      "💾",
+		"auth":    "🔐",
+		"monitor": "📡",
+		"notify":  "📢",
+		"task":    "⚡",
+	}[strings.ToLower(typ)]
+
+	if icon == "" {
+		icon = "⚙️"
+	}
+
+	b.WriteString(fmt.Sprintf("%s <b>%s</b>\n\n", icon, cases.Title(language.English).String(typ)))
 }
