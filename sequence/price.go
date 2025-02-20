@@ -22,11 +22,11 @@ type PriceSequence struct {
 	mu        sync.Mutex
 	maxLen    int
 	// 数据提供商
-	dataProvider market.Provider
+	dataProvider market.DataProvider
 }
 
 // NewPriceSequence 返回一个新的价格序列
-func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration, maxLen int, dataProvider market.Provider) (Sequence[float64], error) {
+func NewPriceSequence(ctx context.Context, base, quote string, bar time.Duration, maxLen int, dataProvider market.DataProvider) (Sequence[float64], error) {
 	scale := int(bar / Frequency)
 	ps := &PriceSequence{
 		base:         base,

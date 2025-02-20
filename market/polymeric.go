@@ -7,31 +7,22 @@ import (
 )
 
 type PolymericProvider struct {
-	members      []Provider
+	members      []DataProvider
 	strategyFunc func([]*PriceTick) *PriceTick
-
-	// 下单方法
-	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
-func NewPolymericProvider(members ...Provider) Provider {
+func NewPolymericProvider(members ...DataProvider) DataProvider {
 	return &PolymericProvider{
 		members:      members,
 		strategyFunc: defaultStrategy,
 	}
 }
 
-func NewPolymericProviderWithStrategy(strategy func([]*PriceTick) *PriceTick, members ...Provider) Provider {
+func NewPolymericProviderWithStrategy(strategy func([]*PriceTick) *PriceTick, members ...DataProvider) DataProvider {
 	return &PolymericProvider{
 		members:      members,
 		strategyFunc: strategy,
 	}
-}
-
-func (p *PolymericProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	newProvider := *p
-	newProvider.orderFunc = orderFunc
-	return &newProvider
 }
 
 func (p *PolymericProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
@@ -40,7 +31,7 @@ func (p *PolymericProvider) GetHistoricalData(base, quote string, afterTime stri
 		err error
 	}
 
-	results := lo.MapConcurrent(p.members, func(member Provider, _ int) concurrencyResult {
+	results := lo.MapConcurrent(p.members, func(member DataProvider, _ int) concurrencyResult {
 		tpRes, e := member.GetHistoricalData(base, quote, afterTime, limit)
 		if e != nil {
 			return concurrencyResult{
@@ -77,7 +68,7 @@ func (p *PolymericProvider) GetLatestData(base, quote string) (*PriceTick, error
 		err error
 	}
 
-	results := lo.MapConcurrent(p.members, func(member Provider, _ int) result {
+	results := lo.MapConcurrent(p.members, func(member DataProvider, _ int) result {
 		tpRes, e := member.GetLatestData(base, quote)
 		if e != nil {
 			return result{
@@ -95,13 +86,6 @@ func (p *PolymericProvider) GetLatestData(base, quote string) (*PriceTick, error
 		finalRes = append(finalRes, res.res)
 	}
 	return p.strategyFunc(finalRes), nil
-}
-
-func (p *PolymericProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
-	if p.orderFunc == nil {
-		panic("implement me")
-	}
-	return p.orderFunc(base, quote, side, size)
 }
 
 func (p *PolymericProvider) GetMaxHistoryLimit() int {

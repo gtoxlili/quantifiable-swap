@@ -15,8 +15,6 @@ type Provider interface {
 	DataProvider
 	// TradingProvider 交易能力
 	TradingProvider
-	// Name 提供者标识
-	Name() string
 }
 
 // DataProvider 定义了市场数据提供能力
@@ -24,20 +22,28 @@ type DataProvider interface {
 	GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error)
 	GetLatestData(base, quote string) (*PriceTick, error)
 	GetMaxHistoryLimit() int
-	WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider
+	Name() string
 }
 
 // TradingProvider 定义了交易能力
 type TradingProvider interface {
 	ExecuteMarketOrder(base, quote string, side string, size float64) (string, error)
+	Name() string
 }
 
 // providers 存储所有注册的 Provider 实例
-var providers = make(map[string]Provider)
+var (
+	dataProviders    = make(map[string]DataProvider)
+	tradingProviders = make(map[string]TradingProvider)
+)
 
-// RegisterProvider 注册一个 Provider 实例
-func registerProvider(p Provider) {
-	providers[strings.ToLower(p.Name())] = p
+func registerProvider(p any) {
+	if dp, ok := p.(DataProvider); ok {
+		dataProviders[strings.ToLower(dp.Name())] = dp
+	}
+	if tp, ok := p.(TradingProvider); ok {
+		tradingProviders[strings.ToLower(tp.Name())] = tp
+	}
 }
 
 // init 在包初始化时注册所有内置的 Provider
@@ -48,16 +54,26 @@ func init() {
 	registerProvider(NewBitGet())
 }
 
-// NewProvider 根据名称返回对应的 Provider
-func NewProvider(name string) Provider {
-	return providers[strings.ToLower(name)]
+func NewDataProvider(name string) DataProvider {
+	return dataProviders[strings.ToLower(name)]
+}
+
+func NewTradingProvider(name string) TradingProvider {
+	return tradingProviders[strings.ToLower(name)]
 }
 
 // ListAvailableProviders returns a list of all registered provider names
-func ListAvailableProviders() []string {
+func ListAvailableProviders(typ string) []string {
 	var names []string
-	for name := range providers {
-		names = append(names, name)
+	switch typ {
+	case "数据":
+		for name := range dataProviders {
+			names = append(names, name)
+		}
+	case "交易":
+		for name := range tradingProviders {
+			names = append(names, name)
+		}
 	}
 	return names
 }

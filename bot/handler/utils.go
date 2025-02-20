@@ -63,13 +63,13 @@ func validateAmountInput(input string) (float64, float64, error) {
 	return buyAmount, sellAmount, nil
 }
 
-func validateProviderInput(input string) (string, error) {
+func validateProviderInput(typ, input string) (string, error) {
 	prov := strings.TrimSpace(input)
 	if prov == "" {
 		return "", fmt.Errorf("❌ <b>输入错误</b>\n\n<i>提供商名称不能为空</i>")
 	}
 
-	availableProviders := market.ListAvailableProviders()
+	availableProviders := market.ListAvailableProviders(typ)
 	for _, p := range availableProviders {
 		if strings.EqualFold(p, prov) {
 			return p, nil // 返回标准格式的提供商名称
@@ -80,7 +80,7 @@ func validateProviderInput(input string) (string, error) {
 		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))
 	}
 
-	return "", fmt.Errorf("❌ <b>无效的提供商</b>\n\n支持的提供商：\n%s", providerList.String())
+	return "", fmt.Errorf("❌ <b>无效的%s提供商</b>\n\n支持的提供商：\n%s", typ, providerList.String())
 }
 
 func formatJobPreview(job config.Job) string {
@@ -94,19 +94,15 @@ func formatJobPreview(job config.Job) string {
 	if job.Type == "monitor" {
 		msgText = fmt.Sprintf(baseFormat,
 			job.String(), job.Type, job.Symbol.Base, job.Symbol.Quote,
-			fmt.Sprintf("📡 数据提供商: <code>%s</code>\n", job.Provider.Name),
+			fmt.Sprintf("📡 数据提供商: <code>%s</code>\n", job.Provider.Data),
 			job.Bar,
 		)
 	} else {
-		ordPb := job.Provider.InjectOrder
-		if ordPb == "" {
-			ordPb = job.Provider.Name
-		}
 		specificInfo := fmt.Sprintf(
 			"💰 数量: 买入 <code>%.4f</code> / 卖出 <code>%.4f</code>\n"+
 				"📡 数据提供商: <code>%s</code>\n"+
 				"🏛️ 交易提供商: <code>%s</code>\n",
-			job.Amount.Buy, job.Amount.Sell, job.Provider.Name, ordPb,
+			job.Amount.Buy, job.Amount.Sell, job.Provider.Data, job.Provider.Trading,
 		)
 		msgText = fmt.Sprintf(baseFormat,
 			job.String(), job.Type, job.Symbol.Base, job.Symbol.Quote,

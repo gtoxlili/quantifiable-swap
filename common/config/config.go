@@ -14,26 +14,30 @@ type Symbol struct {
 }
 
 type Amount struct {
-	Sell float64 `yaml:"sell" json:"sell"`
-	Buy  float64 `yaml:"buy" json:"buy"`
+	Sell float64 `yaml:"sell,omitempty" json:"sell,omitempty"`
+	Buy  float64 `yaml:"buy,omitempty" json:"buy,omitempty"`
 }
 
 type Provider struct {
-	Name        string `yaml:"name" json:"name"`
-	InjectOrder string `yaml:"inject_order,omitempty" json:"inject_order,omitempty"`
+	Data    string `yaml:"data" json:"data"`
+	Trading string `yaml:"trading,omitempty" json:"trading,omitempty"`
 }
 
 type Job struct {
 	Type        string   `yaml:"type" json:"type"`
 	Symbol      Symbol   `yaml:"symbol" json:"symbol"`
 	Bar         string   `yaml:"bar" json:"bar"`
-	Amount      Amount   `yaml:"amount" json:"amount"`
+	Amount      Amount   `yaml:"amount,omitempty" json:"amount,omitempty"`
 	Provider    Provider `yaml:"provider" json:"provider"`
 	Subscribers []int64  `yaml:"subscribers,omitempty" json:"subscribers,omitempty"`
 }
 
 func (j *Job) String() string {
-	return strings.ToUpper(j.Provider.Name + "·" + j.Type + "·" + j.Symbol.Base + "/" + j.Symbol.Quote + "·" + j.Bar)
+	provider := j.Provider.Data
+	if j.Provider.Trading != "" && j.Provider.Trading != provider {
+		provider += "(" + j.Provider.Trading + ")"
+	}
+	return strings.ToUpper(provider + "·" + j.Type + "·" + j.Symbol.Base + "/" + j.Symbol.Quote + "·" + j.Bar)
 }
 
 func (j *Job) Validate(skip ...string) error {

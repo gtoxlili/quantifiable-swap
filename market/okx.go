@@ -23,12 +23,9 @@ type OkxProvider struct {
 	passphrase     string
 
 	limiter limiter.RateLimiter
-
-	// 下单方法
-	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
-func NewOkx() Provider {
+func NewOkx() *OkxProvider {
 	return &OkxProvider{
 		latestPriceURL: "https://www.okx.com/api/v5/market/index-tickers?instId=%s",
 		historyURL:     "https://www.okx.com/api/v5/market/history-index-candles?instId=%s&bar=1m&limit=%d",
@@ -40,13 +37,6 @@ func NewOkx() Provider {
 		// - Example token limiter: rps = 10, burst = 10.
 		limiter: limiter.NewTokenRateLimiter(4),
 	}
-}
-
-// WithOrderInjection 注入下单方法
-func (o *OkxProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	newProvider := *o
-	newProvider.orderFunc = orderFunc
-	return &newProvider
 }
 
 func (o *OkxProvider) GetMaxHistoryLimit() int {
@@ -143,11 +133,6 @@ type OkxOrderRequest struct {
 }
 
 func (o *OkxProvider) ExecuteMarketOrder(base, quote, side string, sz float64) (string, error) {
-
-	if o.orderFunc != nil {
-		return o.orderFunc(base, quote, side, sz)
-	}
-
 	// 构造请求参数，市价单时 ordType 固定为 "market"
 	reqPayload := OkxOrderRequest{
 		InstId:  o.encodeInstrumentID(base, quote),

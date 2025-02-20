@@ -61,12 +61,12 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		session.Step++
 		handler.promptProvider("数据", chatID)
 	case 3:
-		prov, err := validateProviderInput(msg.Text)
+		prov, err := validateProviderInput("数据", msg.Text)
 		if err != nil {
 			handler.sendMessage(chatID, err.Error())
 			return
 		}
-		session.TempJob.Provider.Name = prov
+		session.TempJob.Provider.Data = prov
 		if session.TempJob.Type == "monitor" {
 			session.Step = 5
 			handler.promptBarInterval(chatID)
@@ -75,14 +75,12 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		session.Step++
 		handler.promptProvider("交易", chatID)
 	case 4:
-		prov, err := validateProviderInput(msg.Text)
+		prov, err := validateProviderInput("交易", msg.Text)
 		if err != nil {
 			handler.sendMessage(chatID, err.Error())
 			return
 		}
-		if prov != session.TempJob.Provider.Name {
-			session.TempJob.Provider.InjectOrder = prov
-		}
+		session.TempJob.Provider.Trading = prov
 		session.Step++
 		handler.promptBarInterval(chatID)
 	case 5:
@@ -142,7 +140,7 @@ func (handler *BotHandler) promptProvider(title string, chatID int64) {
 		"交易": "🏛️",
 	}[title]
 
-	providers := market.ListAvailableProviders()
+	providers := market.ListAvailableProviders(title)
 	var providerList strings.Builder
 	for _, p := range providers {
 		providerList.WriteString(fmt.Sprintf("• <code>%s</code>\n", p))

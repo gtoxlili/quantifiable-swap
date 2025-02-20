@@ -25,12 +25,9 @@ type ByBitProvider struct {
 	apiSecret      string
 
 	limiter limiter.RateLimiter
-
-	// 下单方法
-	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
-func NewByBit() Provider {
+func NewByBit() *ByBitProvider {
 	return &ByBitProvider{
 		latestPriceURL: "https://api.bybit.com/v5/market/tickers?category=spot&symbol=%s",
 		historyURL:     "https://api.bybit.com/v5/market/kline?category=spot&interval=1&symbol=%s&limit=%d",
@@ -41,13 +38,6 @@ func NewByBit() Provider {
 		// - Example token limiter: rps = 120, burst = 120.
 		limiter: limiter.NewTokenRateLimiterWithBurst(120, 120),
 	}
-}
-
-// WithOrderInjection 注入下单方法
-func (b *ByBitProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	newProvider := *b
-	newProvider.orderFunc = orderFunc
-	return &newProvider
 }
 
 func (b *ByBitProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
@@ -147,10 +137,6 @@ type ByBitOrderRequest struct {
 }
 
 func (b *ByBitProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
-	if b.orderFunc != nil {
-		return b.orderFunc(base, quote, side, size)
-	}
-
 	reqPayload := ByBitOrderRequest{
 		Category:    "spot",
 		Symbol:      b.encodeInstrumentID(base, quote),

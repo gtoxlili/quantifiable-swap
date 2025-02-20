@@ -16,11 +16,9 @@ type BinanceProvider struct {
 	historyURL     string
 
 	limiter limiter.RateLimiter
-	// 下单方法
-	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
-func NewBinance() Provider {
+func NewBinance() *BinanceProvider {
 	return &BinanceProvider{
 		latestPriceURL: "https://api.binance.com/api/v3/ticker/price?symbol=%s",
 		historyURL:     "https://api.binance.com/api/v3/klines?symbol=%s&interval=1m&limit=%d",
@@ -32,13 +30,6 @@ func NewBinance() Provider {
 		// - Example token limiter: rps = 10, burst = 20 (conservative for klines requests).
 		limiter: limiter.NewTokenRateLimiterWithBurst(10, 20),
 	}
-}
-
-// WithOrderInjection creates a new BinanceProvider instance with the provided order function
-func (b *BinanceProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	newProvider := *b
-	newProvider.orderFunc = orderFunc
-	return &newProvider
 }
 
 func (b *BinanceProvider) Name() string {
@@ -117,13 +108,6 @@ func (b *BinanceProvider) GetLatestData(base, quote string) (*PriceTick, error) 
 		Timestamp: fmt.Sprintf("%d", time.Now().UnixNano()/1e6),
 		Price:     response.Price,
 	}, nil
-}
-
-func (b *BinanceProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
-	if b.orderFunc == nil {
-		panic("implement me")
-	}
-	return b.orderFunc(base, quote, side, size)
 }
 
 func (b *BinanceProvider) encodeInstrumentID(base, quote string) string {

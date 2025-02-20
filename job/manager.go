@@ -31,7 +31,7 @@ func NewManager() IManager {
 }
 
 func (m *Manager) CreateJob(j config.Job) (string, error) {
-	if err := j.Validate("InjectOrder", "Sell", "Buy", "Subscribers"); err != nil {
+	if err := j.Validate("Trading", "Sell", "Buy", "Subscribers"); err != nil {
 		return "", err
 	}
 
@@ -47,16 +47,16 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 		return j.String(), nil
 	}
 
-	prov := market.NewProvider(j.Provider.Name)
-	if prov == nil {
-		return "", fmt.Errorf("未知的 Provider: %s", j.Provider.Name)
+	dataProv := market.NewDataProvider(j.Provider.Data)
+	if dataProv == nil {
+		return "", fmt.Errorf("未知的 Data Provider: %s", j.Provider.Data)
 	}
-	if j.Provider.InjectOrder != "" {
-		injectProv := market.NewProvider(j.Provider.InjectOrder)
-		if injectProv == nil {
-			return "", fmt.Errorf("未知的 InjectOrder Provider: %s", j.Provider.InjectOrder)
+	var tradeProv market.TradingProvider
+	if j.Type != "monitor" {
+		tradeProv = market.NewTradingProvider(j.Provider.Trading)
+		if tradeProv == nil {
+			return "", fmt.Errorf("未知的 Trading Provider: %s", j.Provider.Trading)
 		}
-		prov = prov.WithOrderInjection(injectProv.ExecuteMarketOrder)
 	}
 
 	bar, err := time.ParseDuration(j.Bar)
@@ -67,9 +67,9 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	var executor trading.IStrategyExecutor
 	switch j.Type {
 	case "monitor":
-		executor = trading.NewMonitor(j.Symbol.Base, j.Symbol.Quote, bar, prov)
+		executor = trading.NewMonitor(j.Symbol.Base, j.Symbol.Quote, bar, dataProv)
 	case "trader":
-		executor = trading.NewTrader(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, prov)
+		executor = trading.NewTrader(j.Symbol.Base, j.Symbol.Quote, bar, j.Amount.Sell, j.Amount.Buy, dataProv, tradeProv)
 	default:
 		return "", fmt.Errorf("未知的 Job 类型: %s", j.Type)
 	}

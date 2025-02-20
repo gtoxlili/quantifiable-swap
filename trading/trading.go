@@ -44,31 +44,48 @@ type StrategyExecutor struct {
 	sellStrategy func(tc TradeContext) error
 	buyStrategy  func(tc TradeContext) error
 
-	dataProvider market.Provider
-	log          *logger.Logger
+	dataProvider    market.DataProvider
+	tradingProvider market.TradingProvider
+
+	log *logger.Logger
 }
 
 // NewMonitor 不进行自动下单的 executor （只提醒）
-func NewMonitor(base, quote string, bar time.Duration, dataProvider market.Provider) IStrategyExecutor {
-	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, 0, 0, false, nil, nil, dataProvider)
+func NewMonitor(base, quote string, bar time.Duration, dataProvider market.DataProvider) IStrategyExecutor {
+	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, 0, 0, false, nil, nil, dataProvider, nil)
 }
 
 // NewTrader creates a new executor instance
-func NewTrader(base, quote string, bar time.Duration, sellAmount, buyAmount float64, dataProvider market.Provider) IStrategyExecutor {
-	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultSellStrategy, defaultBuyStrategy, dataProvider)
+func NewTrader(
+	base, quote string,
+	bar time.Duration,
+	sellAmount, buyAmount float64,
+	dataProvider market.DataProvider,
+	tradingProvider market.TradingProvider,
+) IStrategyExecutor {
+	return NewStrategyExecutorWithCustomStrategies(base, quote, bar, sellAmount, buyAmount, true, defaultSellStrategy, defaultBuyStrategy, dataProvider, tradingProvider)
 }
 
-func NewStrategyExecutorWithCustomStrategies(base, quote string, bar time.Duration, sellAmount, buyAmount float64, autoTrade bool, sellStrategy, buyStrategy func(tc TradeContext) error, dataProvider market.Provider) IStrategyExecutor {
+func NewStrategyExecutorWithCustomStrategies(
+	base, quote string,
+	bar time.Duration,
+	sellAmount, buyAmount float64,
+	autoTrade bool,
+	sellStrategy, buyStrategy func(tc TradeContext) error,
+	dataProvider market.DataProvider,
+	tradingProvider market.TradingProvider,
+) IStrategyExecutor {
 	ind := &StrategyExecutor{
-		base:         base,
-		quote:        quote,
-		bar:          bar,
-		sellAmount:   sellAmount,
-		buyAmount:    buyAmount,
-		autoTrade:    autoTrade,
-		sellStrategy: sellStrategy,
-		buyStrategy:  buyStrategy,
-		dataProvider: dataProvider,
+		base:            base,
+		quote:           quote,
+		bar:             bar,
+		sellAmount:      sellAmount,
+		buyAmount:       buyAmount,
+		autoTrade:       autoTrade,
+		sellStrategy:    sellStrategy,
+		buyStrategy:     buyStrategy,
+		dataProvider:    dataProvider,
+		tradingProvider: tradingProvider,
 
 		// 初始化快照
 		lastSellSnapshot: &TradeSnapshot{
@@ -172,7 +189,7 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.dataProvider.ExecuteMarketOrder(r.base, r.quote, "buy", r.buyAmount)
+				orderID, err := r.tradingProvider.ExecuteMarketOrder(r.base, r.quote, "buy", r.buyAmount)
 				if err != nil {
 					r.log.PrintBuyFail(err)
 				} else {
@@ -188,7 +205,7 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 					r.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.dataProvider.ExecuteMarketOrder(r.base, r.quote, "sell", r.sellAmount)
+				orderID, err := r.tradingProvider.ExecuteMarketOrder(r.base, r.quote, "sell", r.sellAmount)
 				if err != nil {
 					r.log.PrintSellFail(err)
 				} else {

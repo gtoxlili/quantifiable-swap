@@ -15,12 +15,9 @@ type BitGetProvider struct {
 	historyURL     string
 
 	limiter limiter.RateLimiter
-
-	// 下单方法
-	orderFunc func(base, quote, side string, size float64) (string, error)
 }
 
-func NewBitGet() Provider {
+func NewBitGet() *BitGetProvider {
 	return &BitGetProvider{
 		latestPriceURL: "https://api.bitget.com/api/v2/spot/market/tickers?symbol=%s",
 		historyURL:     "https://api.bitget.com/api/v2/spot/market/history-candles?symbol=%s&granularity=1min&limit=%d",
@@ -29,13 +26,6 @@ func NewBitGet() Provider {
 		// - Example token limiter: rps = 20, burst = 20.
 		limiter: limiter.NewTokenRateLimiterWithBurst(20, 20),
 	}
-}
-
-// WithOrderInjection 注入下单方法
-func (b *BitGetProvider) WithOrderInjection(orderFunc func(base, quote, side string, size float64) (string, error)) Provider {
-	newProvider := *b
-	newProvider.orderFunc = orderFunc
-	return &newProvider
 }
 
 func (b *BitGetProvider) Name() string {
@@ -123,13 +113,6 @@ func (b *BitGetProvider) GetLatestData(base, quote string) (*PriceTick, error) {
 		response.Data[0].Ts,
 		response.Data[0].LastPr,
 	}, nil
-}
-
-func (b *BitGetProvider) ExecuteMarketOrder(base, quote string, side string, size float64) (string, error) {
-	if b.orderFunc == nil {
-		panic("implement me")
-	}
-	return b.orderFunc(base, quote, side, size)
 }
 
 func (b *BitGetProvider) encodeInstrumentID(base, quote string) string {

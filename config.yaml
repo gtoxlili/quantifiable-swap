@@ -1,26 +1,14 @@
-# Configuration for multiple trading and notification jobs
 - type: trader
   symbol:
-    base: eth
-    quote: usdt
-  bar: 15m
-  amount:
-    sell: 150
-    buy: 300
-  provider:
-    name: okx
-
-- type: trader
-  symbol:
-    base: eth
+    base: aero
     quote: usdt
   bar: 1h
   amount:
-    sell: 200
-    buy: 400
+    sell: 100
+    buy: 200
   provider:
-    name: binance
-    inject_order: okx
+    data: bybit
+    trading: bybit
 
 - type: trader
   symbol:
@@ -31,35 +19,52 @@
     sell: 300
     buy: 600
   provider:
-    name: binance
-    inject_order: okx
+    data: binance
+    trading: okx
 
 - type: trader
   symbol:
     base: aero
+    quote: usdt
+  bar: 15m
+  amount:
+    sell: 50
+    buy: 100
+  provider:
+    data: bybit
+    trading: bybit
+
+- type: trader
+  symbol:
+    base: eth
     quote: usdt
   bar: 1h
   amount:
-    sell: 100
-    buy: 200
+    sell: 200
+    buy: 400
   provider:
-    name: bybit
-
-- type: monitor
-  symbol:
-    base: btc
-    quote: usdt
-  bar: 15m
-  provider:
-    name: binance
+    data: binance
+    trading: okx
 
 - type: trader
   symbol:
-    base: aero
+    base: eth
     quote: usdt
   bar: 15m
   amount:
     sell: 100
-    buy: 100
+    buy: 150
   provider:
-    name: bybit
+    data: okx
+    trading: okx
+
+- type: monitor
+  symbol:
+    base: BTC
+    quote: USDT
+  bar: 15m
+  amount:
+    sell: 0
+    buy: 0
+  provider:
+    data: binance
