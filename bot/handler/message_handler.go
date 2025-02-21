@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/constants"
 )
 
 // processIncomingMessage inspects the user's session state (if any) and
@@ -44,6 +45,8 @@ func (handler *BotHandler) handleCommand(msg *tgApi.Message) {
 	// 管理 （暂停或者启动）
 	case "manage":
 		handler.promptJobManage(chatID)
+	case "version":
+		handler.promptVersionInfo(constants.GitHubRunID)
 	}
 }
 
@@ -85,4 +88,13 @@ func (handler *BotHandler) recordMessageLog(u tgApi.Update) {
 	}
 
 	log.Send()
+}
+
+func (handler *BotHandler) promptVersionInfo(runID string) {
+	messageText := fmt.Sprintf("🎯<b>Github Run Id: <a href='https://github.com/gtoxlili/quantifiable-swap/actions/runs/%s'>%s</a></b>\n\n"+
+		"🚀 Quantifiable Swap 由 GitHub Actions 构建并部署至云服务器\n"+
+		"✅ 此信息可帮助你确认当前版本是由开源代码所构建\n"+
+		"⚠️ 未经任何人（包含作者）修改",
+		runID, runID)
+	handler.sendMessage(handler.OwnerID, messageText)
 }

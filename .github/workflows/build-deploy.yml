@@ -1,0 +1,59 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: 'true'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Build
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -trimpath -buildmode=pie -o ./dist/${{ vars.BINARY_NAME }} \
+          -ldflags "-X 'github.com/gtoxlili/quantifiable-swap/constants.OkxAPIKey=${{ secrets.OKX_API_KEY }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.OkxSecretKey=${{ secrets.OKX_SECRET_KEY }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.OkxPassphrase=${{ secrets.OKX_PASSPHRASE }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.ProxyAddr=${{ secrets.PROXY_ADDR }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.BarkToken=${{ secrets.BARK_TOKEN }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey=${{ secrets.BYBIT_API_KEY }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret=${{ secrets.BYBIT_API_SECRET }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken=${{ secrets.TG_BOT_TOKEN }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.tmpTgChatID=${{ secrets.TG_CHAT_ID }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.LogLevel=${{ vars.LOG_LEVEL }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.GitHubRunID=${{ github.run_id }}' \
+          -s -w -buildid= -extldflags '-static'"
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy files
+        env:
+          REMOTE_ADDRESS: ${{ secrets.REMOTE_ADDRESS }}
+        run: |
+          ssh-keyscan -H $(echo $REMOTE_ADDRESS | cut -d@ -f2) >> ~/.ssh/known_hosts
+          ssh $REMOTE_ADDRESS "mkdir -p ${{ vars.REMOTE_DIR }}"
+          ssh $REMOTE_ADDRESS "${{ vars.PM2_PATH }} delete ${{ vars.BINARY_NAME }} || true"
+          rsync -avz --progress ./dist/${{ vars.BINARY_NAME }} $REMOTE_ADDRESS:${{ vars.REMOTE_DIR }}
+          ssh $REMOTE_ADDRESS "cd ${{ vars.REMOTE_DIR }} && ${{ vars.PM2_PATH }} start ${{ vars.BINARY_NAME }} && ${{ vars.PM2_PATH }} save"
