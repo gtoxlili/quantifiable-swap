@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/gtoxlili/quantifiable-swap/bot"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty/bark"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty/console"
@@ -66,9 +67,9 @@ func NewLogger(typ string) zerolog.Logger {
 		Logger()
 }
 
-func (l *Logger) WithSubscribers(subscribers []int64) *Logger {
+func (l *Logger) WithSubscribers(subscribers []config.Subscriber) *Logger {
 	return &Logger{
-		log: l.log.With().Ints64("subscribers", subscribers).Logger(),
+		log: l.log.With().Interface("subscribers", subscribers).Logger(),
 	}
 }
 
@@ -83,7 +84,7 @@ func (l *Logger) PrintError(err error, disableNotify bool) {
 }
 
 func (l *Logger) PrintStrategyStop() {
-	l.log.Info().Msg("交易策略已停止")
+	l.log.Warn().Msg("交易策略已停止")
 }
 
 // PrintStrategyMetrics 演示打印多个字段：时间、价格、RSI、MA5、MA20。

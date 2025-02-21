@@ -15,7 +15,7 @@ func IsAuthorizedSubscriber(logData LogData) bool {
 
 	chatID := float64(constants.TGChatID)
 	for _, subscriber := range subscribers {
-		if subscriber == chatID {
+		if subscriber.(map[string]interface{})["id"] == chatID {
 			return true
 		}
 	}

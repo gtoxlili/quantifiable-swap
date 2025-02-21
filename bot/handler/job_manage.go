@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"strings"
 )
 
@@ -62,7 +64,9 @@ func (handler *BotHandler) handleJobManageSelection(query *tgApi.CallbackQuery) 
 		"📌 当前状态: <code>%s</code>\n\n"+
 		"🔔 请选择要执行的操作",
 		formatJobPreview(jobData),
-		formatSubscribers(handler.BotAPI, jobData.Subscribers),
+		formatSubscribers(handler.BotAPI, lo.Map(jobData.Subscribers, func(sub config.Subscriber) int64 {
+			return sub.ID
+		})),
 		status,
 	)
 

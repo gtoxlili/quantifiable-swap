@@ -14,7 +14,7 @@ import (
 func (handler *BotHandler) initializeJobCreation(chatID int64) {
 	handler.Sessions.Store(chatID, &SessionState{
 		CurrentAction: "action_create_job",
-		TempJob:       &config.Job{Subscribers: []int64{chatID}},
+		TempJob:       &config.Job{Subscribers: []config.Subscriber{{ID: chatID}}},
 		Step:          0,
 	})
 }
@@ -23,7 +23,7 @@ func (handler *BotHandler) initializeJobCreation(chatID int64) {
 func (handler *BotHandler) initializeJobCreationForGuest(chatID int64) {
 	handler.Sessions.Store(chatID, &SessionState{
 		CurrentAction: "action_create_job",
-		TempJob:       &config.Job{Type: "monitor", Subscribers: []int64{chatID}},
+		TempJob:       &config.Job{Type: "monitor", Subscribers: []config.Subscriber{{ID: chatID}}},
 		Step:          1,
 	})
 }
@@ -90,7 +90,9 @@ func (handler *BotHandler) continueJobCreation(msg *tgApi.Message, session *Sess
 		}
 		session.TempJob.Bar = msg.Text
 		session.Step++
-		handler.showJobPreview(chatID, *session.TempJob)
+		handler.promptImportantOnly(chatID)
+	case 6:
+		handler.promptImportantOnly(chatID)
 	}
 }
 
@@ -102,8 +104,12 @@ func (handler *BotHandler) showJobPreview(chatID int64, job config.Job) {
 			tgApi.NewInlineKeyboardButtonData("取消", "cancel_job_creation"),
 		),
 	)
+	notifyLevel := "仅重要通知"
+	if !job.Subscribers[0].ImportantOnly {
+		notifyLevel = "全部通知"
+	}
 	handler.sendMessageWithMarkup(chatID,
-		fmt.Sprintf("📋 <b>任务预览</b>\n\n%s\n\n⚠️ <i>请确认以上信息</i>", formatJobPreview(job)),
+		fmt.Sprintf("📋 <b>任务预览</b>\n\n%s\n🔔 通知级别: <code>%s</code>\n\n⚠️ <i>请确认以上信息</i>", formatJobPreview(job), notifyLevel),
 		keyboard)
 }
 
@@ -159,6 +165,18 @@ func (handler *BotHandler) promptBarInterval(chatID int64) {
 		"• <code>1d</code>  - 1天")
 }
 
+func (handler *BotHandler) promptImportantOnly(chatID int64) {
+	keyboard := tgApi.NewInlineKeyboardMarkup(
+		tgApi.NewInlineKeyboardRow(
+			tgApi.NewInlineKeyboardButtonData("是", "important_only_yes"),
+			tgApi.NewInlineKeyboardButtonData("否", "important_only_no"),
+		),
+	)
+	handler.sendMessageWithMarkup(chatID, "🔔 <b>是否只接收重要通知</b>\n\n"+
+		"• 重要通知包含：交易信号、错误警告\n"+
+		"• 普通通知包含：市场数据、状态更新", keyboard)
+}
+
 // handleJobCreationConfirmation processes the user's confirmation to create a job.
 func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQuery) {
 	session, ok := handler.Sessions.Load(query.Message.Chat.ID)
@@ -173,4 +191,18 @@ func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQu
 	_ = handler.JobManager.StartJob(session.TempJob.String())
 	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "✅ <b>任务创建成功</b>")
 	handler.Sessions.Delete(query.Message.Chat.ID)
+}
+
+// handleImportantOnlySelection
+func (handler *BotHandler) handleImportantOnlySelection(query *tgApi.CallbackQuery) {
+	session, ok := handler.Sessions.Load(query.Message.Chat.ID)
+	if !ok {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
+		return
+	}
+	if query.Data == "important_only_yes" {
+		session.TempJob.Subscribers[0].ImportantOnly = true
+	}
+	session.Step++
+	handler.showJobPreview(query.Message.Chat.ID, *session.TempJob)
 }

@@ -7,7 +7,7 @@ import (
 type IManager interface {
 	CreateJob(j config.Job) (string, error)
 	DeleteJob(id string) error
-	Unsubscribe(id string, chatID int64) error
+	Unsubscribe(id string, subId int64) error
 	ClearAllJobs()
 	StartJob(id string) error
 	StopJob(id string) error

@@ -23,13 +23,18 @@ type Provider struct {
 	Trading string `yaml:"trading,omitempty" json:"trading,omitempty"`
 }
 
+type Subscriber struct {
+	ID            int64 `yaml:"id" json:"id"`
+	ImportantOnly bool  `yaml:"important_only" json:"important_only"`
+}
+
 type Job struct {
-	Type        string   `yaml:"type" json:"type"`
-	Symbol      Symbol   `yaml:"symbol" json:"symbol"`
-	Bar         string   `yaml:"bar" json:"bar"`
-	Amount      Amount   `yaml:"amount,omitempty" json:"amount,omitempty"`
-	Provider    Provider `yaml:"provider" json:"provider"`
-	Subscribers []int64  `yaml:"subscribers,omitempty" json:"subscribers,omitempty"`
+	Type        string       `yaml:"type" json:"type"`
+	Symbol      Symbol       `yaml:"symbol" json:"symbol"`
+	Bar         string       `yaml:"bar" json:"bar"`
+	Amount      Amount       `yaml:"amount,omitempty" json:"amount,omitempty"`
+	Provider    Provider     `yaml:"provider" json:"provider"`
+	Subscribers []Subscriber `yaml:"subscribers,omitempty" json:"subscribers,omitempty"`
 }
 
 func (j *Job) String() string {

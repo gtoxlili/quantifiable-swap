@@ -57,3 +57,21 @@ func Delete[T comparable](s []T, i T) []T {
 	}
 	return s
 }
+
+func DeleteFunc[T any](s []T, f func(T) bool) []T {
+	var result []T
+	for _, v := range s {
+		if !f(v) {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func Map[T any, R any](s []T, f func(T) R) []R {
+	result := make([]R, len(s))
+	for i, v := range s {
+		result[i] = f(v)
+	}
+	return result
+}

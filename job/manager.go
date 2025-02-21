@@ -38,7 +38,9 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	// id 重复时，添加订阅者
 	if job, found := m.jobs.Load(j.String()); found {
 		subscribers := job.conf.Subscribers
-		if slices.Contains(subscribers, j.Subscribers[0]) {
+		if slices.ContainsFunc(subscribers, func(sub config.Subscriber) bool {
+			return sub.ID == j.Subscribers[0].ID
+		}) {
 			return "", fmt.Errorf("job %s 已存在", j.String())
 		}
 		subscribers = append(subscribers, j.Subscribers[0])
@@ -80,7 +82,7 @@ func (m *Manager) CreateJob(j config.Job) (string, error) {
 	// 鲁棒性处理
 	if len(j.Subscribers) == 0 {
 		if constants.TGChatID != 0 {
-			j.Subscribers = []int64{constants.TGChatID}
+			j.Subscribers = []config.Subscriber{{ID: constants.TGChatID}}
 		}
 	}
 
@@ -106,9 +108,11 @@ func (m *Manager) DeleteJob(id string) error {
 	return fmt.Errorf("job %s 不存在", id)
 }
 
-func (m *Manager) Unsubscribe(id string, chatID int64) error {
+func (m *Manager) Unsubscribe(id string, subId int64) error {
 	if job, found := m.jobs.Load(id); found {
-		subscribers := lo.Delete(job.conf.Subscribers, chatID)
+		subscribers := lo.DeleteFunc(job.conf.Subscribers, func(sub config.Subscriber) bool {
+			return sub.ID == subId
+		})
 		if len(subscribers) == 0 {
 			return m.DeleteJob(id)
 		}
@@ -166,7 +170,9 @@ func (m *Manager) ListAllJobs() []config.Job {
 func (m *Manager) ListJobsBySubscriber(subId int64) []config.Job {
 	var jobs []config.Job
 	m.jobs.Range(func(key string, value *Job) bool {
-		if slices.Contains(value.conf.Subscribers, subId) {
+		if slices.ContainsFunc(value.conf.Subscribers, func(sub config.Subscriber) bool {
+			return sub.ID == subId
+		}) {
 			jobs = append(jobs, *value.conf)
 		}
 		return true

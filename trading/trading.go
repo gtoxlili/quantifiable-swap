@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
 	"github.com/gtoxlili/quantifiable-swap/indicator"
 	"github.com/gtoxlili/quantifiable-swap/logger"
 	"github.com/gtoxlili/quantifiable-swap/market"
@@ -17,7 +18,7 @@ import (
 // IStrategyExecutor 接口
 type IStrategyExecutor interface {
 	Run(ctx context.Context)
-	WithSubscribers(subscribers []int64)
+	WithSubscribers(subscribers []config.Subscriber)
 	RunWithCustomPeriod(ctx context.Context, period int)
 }
 
@@ -103,7 +104,7 @@ func NewStrategyExecutorWithCustomStrategies(
 	return ind
 }
 
-func (r *StrategyExecutor) WithSubscribers(subscribers []int64) {
+func (r *StrategyExecutor) WithSubscribers(subscribers []config.Subscriber) {
 	r.log = r.log.WithSubscribers(subscribers)
 }
 

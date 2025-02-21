@@ -21,7 +21,8 @@ func (handler *BotHandler) processCallbackQuery(query *tgApi.CallbackQuery) {
 		handler.handleCancel(query)
 	case strings.HasPrefix(data, "manage_"):
 		handler.handleJobManageSelection(query)
-
+	case strings.HasPrefix(data, "important_only_"):
+		handler.handleImportantOnlySelection(query)
 	}
 }
 

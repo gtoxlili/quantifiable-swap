@@ -40,7 +40,7 @@ func (w *BotWriter) processEntries() {
 	for logData := range w.entries {
 		msgText := formatLogEntry(logData)
 
-		subIds := getSubscribers(logData)
+		subIds := getSubscribers(logData, logData["level"] == "warn" || logData["level"] == "error")
 		for _, id := range subIds {
 			msg := tgApi.NewMessage(id, msgText)
 			msg.ParseMode = tgApi.ModeHTML
@@ -211,11 +211,15 @@ func getTime(data pretty.LogData) string {
 	return "N/A"
 }
 
-func getSubscribers(data pretty.LogData) []int64 {
+func getSubscribers(data pretty.LogData, important bool) []int64 {
 	if subscribers, ok := data["subscribers"].([]interface{}); ok {
 		var ids []int64
 		for _, subscriber := range subscribers {
-			ids = append(ids, int64(subscriber.(float64)))
+			subMap := subscriber.(map[string]interface{})
+			if !important && subMap["important_only"].(bool) {
+				continue
+			}
+			ids = append(ids, int64(subMap["id"].(float64)))
 		}
 		return ids
 	}
