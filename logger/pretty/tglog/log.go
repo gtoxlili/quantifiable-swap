@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/gtoxlili/quantifiable-swap/common/config"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"golang.org/x/text/cases"
@@ -39,20 +40,22 @@ func (w *BotWriter) Write(p []byte) (n int, err error) {
 func (w *BotWriter) processEntries() {
 	for logData := range w.entries {
 		msgText := formatLogEntry(logData)
+		isImportant := logData["level"] == "warn" || logData["level"] == "error"
 
-		subIds := getSubscribers(logData, logData["level"] == "warn" || logData["level"] == "error")
-		for _, id := range subIds {
-			msg := tgApi.NewMessage(id, msgText)
+		subs := getSubscribers(logData, isImportant)
+		for _, sub := range subs {
+			msg := tgApi.NewMessage(sub.ID, msgText)
 			msg.ParseMode = tgApi.ModeHTML
-			// 置顶
+
 			remote, err := w.bot.Send(msg)
 			if err != nil {
-				// 处理发送错误，可以添加重试逻辑
 				fmt.Printf("发送 Bot 消息失败: %v\n", err)
 				continue
 			}
-			if logData["level"] == "warn" || logData["level"] == "error" {
-				w.alertPin(remote, id)
+
+			// 只为非 important_only 的用户置顶重要消息
+			if isImportant && !sub.ImportantOnly {
+				w.alertPin(remote, sub.ID)
 			}
 		}
 	}
@@ -211,20 +214,30 @@ func getTime(data pretty.LogData) string {
 	return "N/A"
 }
 
-func getSubscribers(data pretty.LogData, important bool) []int64 {
+func getSubscribers(data pretty.LogData, important bool) []config.Subscriber {
+	var subs []config.Subscriber
 	if subscribers, ok := data["subscribers"].([]interface{}); ok {
-		var ids []int64
 		for _, subscriber := range subscribers {
 			subMap := subscriber.(map[string]interface{})
-			if !important && subMap["important_only"].(bool) {
+			importantOnly := subMap["important_only"].(bool)
+
+			// 如果是普通消息且用户只接收重要消息，则跳过
+			if !important && importantOnly {
 				continue
 			}
-			ids = append(ids, int64(subMap["id"].(float64)))
+
+			subs = append(subs, config.Subscriber{
+				ID:            int64(subMap["id"].(float64)),
+				ImportantOnly: importantOnly,
+			})
 		}
-		return ids
+		return subs
 	}
+
 	if constants.TGChatID != 0 {
-		return []int64{constants.TGChatID}
+		return []config.Subscriber{{
+			ID: constants.TGChatID,
+		}}
 	}
 	return nil
 }
