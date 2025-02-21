@@ -106,7 +106,18 @@ The project is written in Go with minimal dependencies and can run on multiple p
 ### 2. Building & Packaging
 In the project root directory, you can either use the Taskfile or manually use go build:
 
-• Using Taskfile (Recommended)  
+• Using GitHub Actions (Recommended)
+  - Fork this project and configure the following Secrets:
+    - `SSH_PRIVATE_KEY`: SSH private key for deployment server
+    - `REMOTE_ADDRESS`: Remote server address
+    - `OKX_API_KEY`/`OKX_SECRET_KEY`/`OKX_PASSPHRASE`: OKX API credentials
+    - `BYBIT_API_KEY`/`BYBIT_API_SECRET`: ByBit API credentials  
+    - `TG_BOT_TOKEN`/`TG_CHAT_ID`: Telegram bot configuration
+    - `BARK_TOKEN`: Bark notification token
+    - `PROXY_ADDR`: Proxy address (optional)
+  - Push to main branch or manually trigger workflow to build and deploy
+
+• Using Taskfile
   - Install the [Task](https://taskfile.dev/) tool, then in the project root directory run:  
     » task  
     (By default, this will compile for linux-amd64 and may upload the build, depending on your Taskfile.yml settings.)  
@@ -122,11 +133,16 @@ In the project root directory, you can either use the Taskfile or manually use g
   - The resulting binary will be at dist/quantifiable-swap.
 
 ### 3. Deployment & Launch
-1. Manual Deployment  
+1. GitHub Actions Automated Deployment
+   - Configure repository Secrets and Variables
+   - Push code to main branch to trigger automatic build
+   - Actions will compile, deploy and start service via PM2
+
+2. Manual Deployment  
    - Upload the dist/quantifiable-swap binary and your config.yaml to your server.  
    - Navigate to the directory and run ./quantifiable-swap to start; you can use PM2, Supervisor, etc. for process management.  
 
-2. Automated Deployment via Taskfile  
+3. Automated Deployment via Taskfile  
    - Configure REMOTE_ADDRESS, REMOTE_DIR, etc. in Taskfile.yml.  
    - Run » task deploy-binary (or the default » task) to automatically upload the binary and start it under PM2.  
    - If needed, run » task deploy-config to deploy your configuration file.
