@@ -8,6 +8,7 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/common/limiter"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"io"
 	"net/http"
@@ -191,7 +192,7 @@ func (o *OkxProvider) fetchOkxAuthRequest(method, requestPath string, body []byt
 	// 获取当前时间
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	// 生成 OK-ACCESS-SIGN
-	sign, err := common.HmacSha256Sign(timestamp+method+requestPath+string(body), o.secretKey)
+	sign, err := common.HmacSha256Sign(timestamp+method+requestPath+lo.UnsafeString(body), o.secretKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signature: %v", err)
 	}

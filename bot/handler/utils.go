@@ -6,6 +6,7 @@ import (
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/market"
 	"strconv"
 	"strings"
@@ -72,7 +73,7 @@ func validateAmountInput(input string) (float64, float64, error) {
 // 校验 Json 格式
 func validateJobInput(input string) (*config.Job, error) {
 	var job config.Job
-	if err := json.Unmarshal([]byte(input), &job); err != nil {
+	if err := json.Unmarshal(lo.UnsafeBytes(input), &job); err != nil {
 		return nil, fmt.Errorf("❌ <b>解析失败</b>\n\n<i>JSON 错误：%v</i>", err)
 	}
 	return &job, nil

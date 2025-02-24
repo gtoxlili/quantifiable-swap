@@ -8,6 +8,7 @@ import (
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/common/limiter"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -196,7 +197,7 @@ func (b *ByBitProvider) fetchByBitAuthRequest(method, requestPath string, body [
 	// 获取当前时间戳
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
-	signString := timestamp + b.apiKey + string(body)
+	signString := timestamp + b.apiKey + lo.UnsafeString(body)
 	signature, err := common.HmacSha256Sign(signString, b.apiSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate signature: %v", err)

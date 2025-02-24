@@ -4,14 +4,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"math"
 	"reflect"
 )
 
-func HmacSha256Sign(message, secrectKey string) ([]byte, error) {
+func HmacSha256Sign(message, secretKey string) ([]byte, error) {
 	// 创建 HMAC-SHA256 哈希
-	h := hmac.New(sha256.New, []byte(secrectKey))
-	_, err := h.Write([]byte(message))
+	h := hmac.New(sha256.New, lo.UnsafeBytes(secretKey))
+	_, err := h.Write(lo.UnsafeBytes(message))
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate HMAC: %v", err)
 	}
