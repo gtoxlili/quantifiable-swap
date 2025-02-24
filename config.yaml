@@ -4,7 +4,7 @@
     quote: usdt
   bar: 1h
   amount:
-    sell: 100
+    sell: 200
     buy: 200
   provider:
     data: bybit
@@ -24,18 +24,6 @@
 
 - type: trader
   symbol:
-    base: aero
-    quote: usdt
-  bar: 15m
-  amount:
-    sell: 50
-    buy: 100
-  provider:
-    data: bybit
-    trading: bybit
-
-- type: trader
-  symbol:
     base: eth
     quote: usdt
   bar: 1h
@@ -52,19 +40,8 @@
     quote: usdt
   bar: 15m
   amount:
-    sell: 100
+    sell: 50
     buy: 150
   provider:
     data: okx
     trading: okx
-
-- type: monitor
-  symbol:
-    base: BTC
-    quote: USDT
-  bar: 15m
-  amount:
-    sell: 0
-    buy: 0
-  provider:
-    data: binance

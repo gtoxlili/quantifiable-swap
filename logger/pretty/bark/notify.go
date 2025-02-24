@@ -82,6 +82,12 @@ func handleWarn(logData pretty.LogData) (title, message, groupName string) {
 	id := fmt.Sprintf("%v", logData["ID"])
 
 	if msg, ok := logData["message"]; ok {
+		// 如果 OrderId 不存在
+		if _, ok := logData["OrderID"]; !ok {
+			return fmt.Sprintf("📍 %s", msg),
+				fmt.Sprintf("Symbol: %s, Bar: %s, Provider: %s", id, logData["DP"], fmt.Sprintf("%dm", int(logData["Bar"].(float64)))),
+				"服务状态"
+		}
 		return fmt.Sprintf("🚀 [%s] %s", id, msg), fmt.Sprintf("Price: %.2f, RSI: %.2f, OrderId: %s", logData["Price"], logData["RSI"], logData["OrderID"]), "自动交易"
 	}
 
