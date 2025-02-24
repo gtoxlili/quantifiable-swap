@@ -47,6 +47,10 @@ func (o *OkxProvider) Name() string {
 	return "OKX"
 }
 
+func (o *OkxProvider) UrlScheme(_, _ string) string {
+	return "okx://"
+}
+
 func (o *OkxProvider) GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error) {
 	if err := o.limiter.Wait(); err != nil {
 		return nil, fmt.Errorf("%s rate limit wait error: %v", o.Name(), err)

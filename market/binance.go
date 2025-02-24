@@ -36,6 +36,10 @@ func (b *BinanceProvider) Name() string {
 	return "Binance"
 }
 
+func (b *BinanceProvider) UrlScheme(_, _ string) string {
+	return "bnc://app.binance.com/markets/markets"
+}
+
 func (b *BinanceProvider) GetMaxHistoryLimit() int {
 	return 1000
 }

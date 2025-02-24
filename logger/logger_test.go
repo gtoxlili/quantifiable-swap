@@ -9,23 +9,23 @@ import (
 func TestNewLogger(t *testing.T) {
 	// Test constants
 	const (
-		testID       = "BTC-USDT"
+		testID       = "DOGE-USDT"
 		testProvider = "okx"
 		testBar      = 5
 	)
 
 	// Create logger instance
-	logger := NewTraderLogger(testID, testProvider, testBar)
+	logger := NewTraderLogger(testID, testProvider, testBar, "okx://")
 	// Test error logging
 	testErr := errors.New("test error")
 	logger.PrintError(testErr, false)
 
 	// Test WAP stop
-	logger.PrintWAPStop()
+	logger.PrintStrategyStop()
 
 	// Test indicator log
 	testTime := time.Now()
-	logger.PrintIndicatorLog(testTime, 50000.0, 90.5, 49000.0, 48000.0, "RSI")
+	logger.PrintStrategyMetrics(testTime, 50000.0, 90.5, 49000.0, 48000.0, "RSI")
 
 	// Test error with time
 	logger.PrintErrorWithTime(testTime, testErr, false)

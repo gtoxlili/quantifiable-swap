@@ -53,8 +53,7 @@ func (w *BotWriter) processEntries() {
 				continue
 			}
 
-			// 只为非 important_only 的用户置顶重要消息
-			if isImportant && !sub.ImportantOnly {
+			if isImportant {
 				w.alertPin(remote, sub.ID)
 			}
 		}
@@ -245,7 +244,7 @@ func getSubscribers(data pretty.LogData, important bool) []config.Subscriber {
 // 打印额外字段
 func handleExtraFields(b *bytes.Buffer, data pretty.LogData) {
 	for k, v := range data {
-		if k == "level" || k == "time" || k == "type" || k == "message" || k == "error" || k == "disableNotify" {
+		if k == "level" || k == "time" || k == "type" || k == "message" || k == "error" || k == "disableNotify" || k == "UrlScheme" {
 			continue
 		}
 		b.WriteString(fmt.Sprintf("💭 %s: <code>%v</code>\n", k, v))

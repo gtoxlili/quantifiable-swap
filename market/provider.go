@@ -17,18 +17,23 @@ type Provider interface {
 	TradingProvider
 }
 
+type ProviderInfo interface {
+	Name() string
+	UrlScheme(base, quote string) string
+}
+
 // DataProvider 定义了市场数据提供能力
 type DataProvider interface {
+	ProviderInfo
 	GetHistoricalData(base, quote string, afterTime string, limit int) ([]*PriceTick, error)
 	GetLatestData(base, quote string) (*PriceTick, error)
 	GetMaxHistoryLimit() int
-	Name() string
 }
 
 // TradingProvider 定义了交易能力
 type TradingProvider interface {
+	ProviderInfo
 	ExecuteMarketOrder(base, quote string, side string, size float64) (string, error)
-	Name() string
 }
 
 // providers 存储所有注册的 Provider 实例

@@ -100,7 +100,11 @@ func NewStrategyExecutorWithCustomStrategies(
 			Price:     float64(intsets.MinInt),
 		},
 	}
-	ind.log = logger.NewTraderLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()))
+	urlScheme := dataProvider.UrlScheme(base, quote)
+	if tradingProvider != nil {
+		urlScheme = tradingProvider.UrlScheme(base, quote)
+	}
+	ind.log = logger.NewTraderLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()), urlScheme)
 	return ind
 }
 

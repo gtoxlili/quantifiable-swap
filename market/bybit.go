@@ -181,6 +181,10 @@ func (b *ByBitProvider) Name() string {
 	return "ByBit"
 }
 
+func (o *ByBitProvider) UrlScheme(base, quote string) string {
+	return fmt.Sprintf("bybitapp://open/home?tab=2&symbol=%s", o.encodeInstrumentID(base, quote))
+}
+
 func (b *ByBitProvider) encodeInstrumentID(base, quote string) string {
 	return strings.ToUpper(base) + strings.ToUpper(quote)
 }

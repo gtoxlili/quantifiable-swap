@@ -2,6 +2,7 @@ package lo
 
 import (
 	"cmp"
+	"golang.org/x/exp/rand"
 	"sync"
 )
 
@@ -74,4 +75,13 @@ func Map[T any, R any](s []T, f func(T) R) []R {
 		result[i] = f(v)
 	}
 	return result
+}
+
+// RandInt 返回 [min, max) 范围内的随机整数
+func RandInt(min, max int) int {
+	return min + rand.Intn(max-min)
+}
+
+func RandOne[T any](slice []T) T {
+	return slice[RandInt(0, len(slice))]
 }

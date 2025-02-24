@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
+	"github.com/gtoxlili/quantifiable-swap/common/icon"
+	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"io"
 	"net/http"
@@ -49,7 +51,15 @@ func (w *NotifyWriter) processEntries() {
 		// 只对 warn 和 error 级别的日志发送通知
 		if logData["level"] == "warn" || logData["level"] == "error" {
 			title, message, groupName := formatLogEntry(logData)
-			if err := w.notify(title, message, groupName); err != nil {
+
+			urlScheme := ""
+			if groupName == "自动交易" || groupName == "指标监控" {
+				urlScheme = logData["UrlScheme"].(string)
+			} else if groupName == "服务状态" && constants.TGBotName != "" {
+				urlScheme = fmt.Sprintf("tg://resolve?domain=%s", constants.TGBotName)
+			}
+
+			if err := w.notify(title, message, groupName, logData["ID"].(string), urlScheme); err != nil {
 				fmt.Printf("发送 Notify 消息失败: %v\n", err)
 			}
 		}
@@ -112,17 +122,36 @@ func handleWarn(logData pretty.LogData) (title, message, groupName string) {
 	panic("unexpected abnormal")
 }
 
-func (w *NotifyWriter) notify(title, message string, groupName string) error {
+func (w *NotifyWriter) notify(title, message string, groupName string, symbol string, urlScheme string) error {
+	urlValues := url.Values{}
+
 	baseURL := fmt.Sprintf(
 		"https://api.day.app/%s/%s",
 		w.token,
 		url.QueryEscape(title),
 	)
+
+	// Add message if present
 	if message != "" {
 		baseURL = baseURL + "/" + url.QueryEscape(message)
 	}
+
+	// Add optional query parameters
 	if groupName != "" {
-		baseURL = baseURL + "?group=" + url.QueryEscape(groupName)
+		urlValues.Set("group", groupName)
+	}
+
+	if iconUrl, err := icon.GetCoinIcon(symbol); err == nil {
+		urlValues.Set("icon", iconUrl)
+	}
+
+	if urlScheme != "" {
+		urlValues.Set("url", urlScheme)
+	}
+
+	// Append query parameters if any exist
+	if len(urlValues) > 0 {
+		baseURL = baseURL + "?" + urlValues.Encode()
 	}
 
 	req, err := http.NewRequest(http.MethodGet, baseURL, nil)

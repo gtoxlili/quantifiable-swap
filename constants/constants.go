@@ -12,6 +12,7 @@ var (
 	ByBitAPIKey    = ""
 	ByBitAPISecret = ""
 	TGBotToken     = ""
+	TGBotName      = ""
 	GitHubRunID    = ""
 	TGChatID       int64
 

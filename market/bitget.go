@@ -32,6 +32,10 @@ func (b *BitGetProvider) Name() string {
 	return "BitGet"
 }
 
+func (b *BitGetProvider) UrlScheme(base, quote string) string {
+	return fmt.Sprintf("https://www.bitget.com/zh-CN/spot/%s", b.encodeInstrumentID(base, quote))
+}
+
 func (b *BitGetProvider) GetMaxHistoryLimit() int {
 	return 200
 }

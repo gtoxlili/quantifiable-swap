@@ -50,13 +50,14 @@ func init() {
 }
 
 // NewTraderLogger 创建一个新的 Logger 单例实例。
-func NewTraderLogger(instID, dataProvider string, barMinutes int) *Logger {
+func NewTraderLogger(instID, dataProvider string, barMinutes int, urlScheme string) *Logger {
 	return &Logger{
 		log: l.log.With().
-			Str("type", "trader").   // 日志类型
-			Str("ID", instID).       // 实例ID
-			Str("DP", dataProvider). // 数据源
-			Int("Bar", barMinutes).  // K线周期（分钟）
+			Str("type", "trader").       // 日志类型
+			Str("ID", instID).           // 实例ID
+			Str("DP", dataProvider).     // 数据源
+			Int("Bar", barMinutes).      // K线周期（分钟）
+			Str("UrlScheme", urlScheme). // UrlScheme
 			Logger(),
 	}
 }

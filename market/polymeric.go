@@ -104,6 +104,10 @@ func (p *PolymericProvider) Name() string {
 	return name[:len(name)-1]
 }
 
+func (p *PolymericProvider) UrlScheme(base, quote string) string {
+	return lo.RandOne(p.members).UrlScheme(base, quote)
+}
+
 // 默认的策略函数 （AVG）
 func defaultStrategy(tpResGroup []*PriceTick) *PriceTick {
 	var sum float64
