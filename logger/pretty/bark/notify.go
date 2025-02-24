@@ -1,10 +1,10 @@
 package bark
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common/icon"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/constants"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"io"

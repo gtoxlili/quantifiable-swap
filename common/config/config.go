@@ -1,9 +1,9 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"gopkg.in/yaml.v3"
 	"os"
 	"strings"

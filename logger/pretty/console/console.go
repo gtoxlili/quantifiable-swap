@@ -2,8 +2,8 @@ package console
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/logger/pretty"
 	"io"
 	"strings"

@@ -2,10 +2,10 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/market"
 	"strconv"

@@ -2,11 +2,11 @@ package trading
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/indicator"
 	"github.com/gtoxlili/quantifiable-swap/logger"

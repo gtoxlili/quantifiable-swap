@@ -1,9 +1,9 @@
 package market
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"net/http"
 	"strings"

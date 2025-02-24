@@ -3,10 +3,10 @@ package market
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/client"
 	"github.com/gtoxlili/quantifiable-swap/common"
+	"github.com/gtoxlili/quantifiable-swap/common/json"
 	"github.com/gtoxlili/quantifiable-swap/common/limiter"
 	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/constants"
