@@ -38,6 +38,7 @@ jobs:
           -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey=${{ secrets.BYBIT_API_KEY }}' \
           -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret=${{ secrets.BYBIT_API_SECRET }}' \
           -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken=${{ secrets.TG_BOT_TOKEN }}' \
+          -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotName=${{ secrets.TG_BOT_NAME }}' \
           -X 'github.com/gtoxlili/quantifiable-swap/constants.tmpTgChatID=${{ secrets.TG_CHAT_ID }}' \
           -X 'github.com/gtoxlili/quantifiable-swap/constants.LogLevel=${{ vars.LOG_LEVEL }}' \
           -X 'github.com/gtoxlili/quantifiable-swap/constants.GitHubRunID=${{ github.run_id }}' \

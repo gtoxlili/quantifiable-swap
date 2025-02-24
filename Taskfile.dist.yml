@@ -10,6 +10,7 @@ vars:
   BYBIT_API_KEY:
   BYBIT_API_SECRET:
   TG_BOT_TOKEN:
+  TG_BOT_NAME:
   TG_CHAT_ID:
   REMOTE_ADDRESS:
   REMOTE_DIR:
@@ -34,6 +35,7 @@ tasks:
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPIKey={{.BYBIT_API_KEY}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.ByBitAPISecret={{.BYBIT_API_SECRET}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotToken={{.TG_BOT_TOKEN}}' \
+        -X 'github.com/gtoxlili/quantifiable-swap/constants.TGBotName={{.TG_BOT_NAME}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.tmpTgChatID={{.TG_CHAT_ID}}' \
         -X 'github.com/gtoxlili/quantifiable-swap/constants.LogLevel={{.LOG_LEVEL}}' \
         -w -s -buildid="
