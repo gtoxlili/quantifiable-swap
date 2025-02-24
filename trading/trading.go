@@ -224,13 +224,14 @@ func (e *StrategyExecutor) saveSnapshot(typ string, price, curRSI float64) {
 	snapshot.OrderTime = time.Now()
 	snapshot.Price = price
 	snapshot.RSI = curRSI
-
-	if err := e.persistSnapshot(typ, snapshot); err != nil {
-		e.log.PrintError(fmt.Errorf("持久化「%s」快照失败：%w", typ, err), false)
-	}
+	go func(typ string, snapshot TradeSnapshot) {
+		if err := e.persistSnapshot(typ, snapshot); err != nil {
+			e.log.PrintError(fmt.Errorf("持久化「%s」快照失败：%w", typ, err), false)
+		}
+	}(typ, *snapshot)
 }
 
-func (e *StrategyExecutor) persistSnapshot(typ string, snapshot *TradeSnapshot) error {
+func (e *StrategyExecutor) persistSnapshot(typ string, snapshot TradeSnapshot) error {
 	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s_%s_%s_%d", typ, e.printInstId(), e.dataProvider.Name(), int(e.bar.Minutes())), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("open snapshot file: %w", err)
