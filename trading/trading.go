@@ -231,7 +231,7 @@ func (e *StrategyExecutor) saveSnapshot(typ string, price, curRSI float64) {
 }
 
 func (e *StrategyExecutor) persistSnapshot(typ string, snapshot *TradeSnapshot) error {
-	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s.txt", typ), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s.txt", typ), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("open snapshot file: %w", err)
 	}
