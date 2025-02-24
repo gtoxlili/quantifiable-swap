@@ -181,15 +181,26 @@ func (handler *BotHandler) promptImportantOnly(chatID int64) {
 func (handler *BotHandler) handleJobCreationConfirmation(query *tgApi.CallbackQuery) {
 	session, ok := handler.Sessions.Load(query.Message.Chat.ID)
 	if !ok {
-		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "❌ <b>创建失败</b>\n\n<i>会话已过期，请重新创建任务</i>")
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+			"❌ <b>会话异常</b>\n\n"+
+				"• 状态：<i>会话已过期</i>\n"+
+				"• 建议：<i>请重新创建任务</i>")
 		return
 	}
+
 	if _, err := handler.JobManager.CreateJob(*session.TempJob); err != nil {
-		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, fmt.Sprintf("❌ <b>创建失败</b>\n\n错误信息：<i>%v</i>", err))
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+			fmt.Sprintf("❌ <b>任务创建失败</b>\n\n"+
+				"• 任务ID：<code>%s</code>\n"+
+				"• 错误信息：<i>%v</i>",
+				session.TempJob.String(), err))
 		return
 	}
+
 	_ = handler.JobManager.StartJob(session.TempJob.String())
-	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "✅ <b>任务创建成功</b>")
+	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+		"✅ <b>任务创建成功</b>\n\n"+
+			"• 状态：<i>已自动启动</i>")
 	handler.Sessions.Delete(query.Message.Chat.ID)
 }
 

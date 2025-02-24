@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
@@ -20,6 +21,11 @@ func (handler *BotHandler) sendMessage(chatID int64, text string) {
 func (handler *BotHandler) sendEditMessage(chatID int64, messageID int, text string) {
 	msg := tgApi.NewEditMessageText(chatID, messageID, text)
 	msg.ParseMode = tgApi.ModeHTML
+	handler.BotAPI.Send(msg)
+}
+
+func (handler *BotHandler) deleteMessage(chatID int64, messageID int) {
+	msg := tgApi.NewDeleteMessage(chatID, messageID)
 	handler.BotAPI.Send(msg)
 }
 
@@ -61,6 +67,15 @@ func validateAmountInput(input string) (float64, float64, error) {
 		return 0, 0, fmt.Errorf("❌ <b>数值错误</b>\n\n<i>交易数量必须大于0</i>")
 	}
 	return buyAmount, sellAmount, nil
+}
+
+// 校验 Json 格式
+func validateJobInput(input string) (*config.Job, error) {
+	var job config.Job
+	if err := json.Unmarshal([]byte(input), &job); err != nil {
+		return nil, fmt.Errorf("❌ <b>解析失败</b>\n\n<i>JSON 错误：%v</i>", err)
+	}
+	return &job, nil
 }
 
 func validateProviderInput(typ, input string) (string, error) {

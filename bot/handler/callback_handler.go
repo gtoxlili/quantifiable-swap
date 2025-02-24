@@ -23,6 +23,8 @@ func (handler *BotHandler) processCallbackQuery(query *tgApi.CallbackQuery) {
 		handler.handleJobManageSelection(query)
 	case strings.HasPrefix(data, "important_only_"):
 		handler.handleImportantOnlySelection(query)
+	case strings.HasPrefix(data, "edit_"):
+		handler.handleJobEditSelection(query)
 	}
 }
 
@@ -36,6 +38,8 @@ func (handler *BotHandler) handleConfirmation(query *tgApi.CallbackQuery) {
 		handler.handleJobManageConfirmation(query)
 	} else if strings.HasPrefix(query.Data, "confirm_admin_delete_") {
 		handler.handleAdminJobRemovalConfirmation(query)
+	} else if strings.HasSuffix(query.Data, "job_edit") {
+		handler.handleJobEditConfirmation(query)
 	}
 }
 
@@ -50,5 +54,8 @@ func (handler *BotHandler) handleCancel(query *tgApi.CallbackQuery) {
 	} else if strings.HasSuffix(query.Data, "manage") {
 		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "🚫 <b>任务状态变更已取消</b>")
 		return
+	} else if strings.HasSuffix(query.Data, "job_edit") {
+		handler.Sessions.Delete(query.Message.Chat.ID)
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID, "🚫 <b>任务编辑已取消</b>")
 	}
 }

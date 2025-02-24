@@ -85,3 +85,10 @@ func RandInt(min, max int) int {
 func RandOne[T any](slice []T) T {
 	return slice[RandInt(0, len(slice))]
 }
+
+func IfThen[T any](condition bool, trueValue, falseValue T) T {
+	if condition {
+		return trueValue
+	}
+	return falseValue
+}

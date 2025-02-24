@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	tgApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gtoxlili/quantifiable-swap/bot"
@@ -58,13 +57,11 @@ func (app *App) initialize() error {
 // initJobs adds and runs each job, logging relevant status.
 func (app *App) initJobs(jobs []config.Job) error {
 	for _, j := range jobs {
-		jobConfig, _ := json.MarshalIndent(j, "", "  ")
-
 		id, err := app.manager.CreateJob(j)
 		if err != nil {
 			app.log.Error().
 				Err(err).
-				Bytes("任务配置", jobConfig).
+				Bytes("任务配置", j.Format()).
 				Msg("任务启动失败")
 			continue
 		}
@@ -72,13 +69,13 @@ func (app *App) initJobs(jobs []config.Job) error {
 		if err := app.manager.StartJob(id); err != nil {
 			app.log.Error().
 				Err(err).
-				Bytes("任务配置", jobConfig).
+				Bytes("任务配置", j.Format()).
 				Msg("任务运行失败")
 			continue
 		}
 
 		app.log.Info().
-			Bytes("任务配置", jobConfig).
+			Bytes("任务配置", j.Format()).
 			Str("JobID", id).
 			Msg("任务启动成功")
 	}

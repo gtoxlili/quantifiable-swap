@@ -12,6 +12,7 @@ import (
 type SessionState struct {
 	CurrentAction string
 	TempJob       *config.Job
+	TempEditJob   *config.Job
 	Step          int
 }
 

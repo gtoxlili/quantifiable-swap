@@ -23,6 +23,8 @@ func (handler *BotHandler) handleStatefulFlow(msg *tgApi.Message, session *Sessi
 	switch session.CurrentAction {
 	case "action_create_job":
 		handler.continueJobCreation(msg, session)
+	case "action_edit_job":
+		handler.continueJobEdit(msg, session)
 		// Add other stateful flows here as needed.
 	}
 }

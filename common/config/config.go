@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"gopkg.in/yaml.v3"
@@ -47,6 +48,11 @@ func (j *Job) String() string {
 
 func (j *Job) Validate(skip ...string) error {
 	return common.CheckEmptyFields(j, skip...)
+}
+
+func (j *Job) Format() []byte {
+	format, _ := json.MarshalIndent(j, "", "  ")
+	return format
 }
 
 func ParseConfig(path string) ([]Job, error) {

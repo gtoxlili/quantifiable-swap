@@ -76,6 +76,7 @@ func (handler *BotHandler) handleJobManageSelection(query *tgApi.CallbackQuery) 
 				fmt.Sprintf("%s", action),
 				fmt.Sprintf("confirm_manage_%s", jobID),
 			),
+			tgApi.NewInlineKeyboardButtonData("编辑", fmt.Sprintf("edit_%s", jobID)),
 			tgApi.NewInlineKeyboardButtonData("删除", fmt.Sprintf("confirm_admin_delete_%s", jobID)),
 			tgApi.NewInlineKeyboardButtonData("取消", "cancel_manage"),
 		),
@@ -105,4 +106,99 @@ func (handler *BotHandler) handleJobManageConfirmation(query *tgApi.CallbackQuer
 		handler.sendEditMessage(chatID, query.Message.MessageID, fmt.Sprintf("✅ <b>%s成功</b>\n\n"+
 			"任务ID: <code>%s</code>", action, jobID))
 	}
+}
+
+func (handler *BotHandler) initializeJobEdit(chatID int64, jobData *config.Job) {
+	handler.Sessions.Store(chatID, &SessionState{
+		CurrentAction: "action_edit_job",
+		TempJob:       jobData,
+		Step:          0,
+	})
+}
+
+func (handler *BotHandler) handleJobEditSelection(query *tgApi.CallbackQuery) {
+	jobID := strings.TrimPrefix(query.Data, "edit_")
+	chatID := query.Message.Chat.ID
+
+	jobData, find := handler.JobManager.GetJobData(jobID)
+	if !find {
+		handler.sendMessage(chatID, "❌ <b>任务不存在</b>\n\n<i>请刷新任务列表</i>")
+		return
+	}
+
+	handler.initializeJobEdit(chatID, &jobData)
+	handler.sendEditMessage(chatID, query.Message.MessageID,
+		fmt.Sprintf("✏️ <b>编辑任务配置</b>\n\n"+
+			"当前配置：\n"+
+			"<pre><code class=\"language-json\">%s</code></pre>\n\n"+
+			"请回复修改后的 JSON 配置：\n"+
+			"• 保持 JSON 格式\n"+
+			"• 可直接粘贴完整 JSON 或只修改部分字段",
+			jobData.Format()))
+}
+
+// continueJobEdit
+func (handler *BotHandler) continueJobEdit(msg *tgApi.Message, session *SessionState) {
+	chatID := msg.Chat.ID
+
+	switch session.Step {
+	case 0:
+		editJob, err := validateJobInput(msg.Text)
+		if err != nil {
+			handler.sendMessage(chatID, err.Error())
+			return
+		}
+		defer handler.deleteMessage(chatID, msg.MessageID)
+		session.Step++
+		session.TempEditJob = editJob
+		// 任务修改预览
+		keyboard := tgApi.NewInlineKeyboardMarkup(
+			tgApi.NewInlineKeyboardRow(
+				tgApi.NewInlineKeyboardButtonData("确定", "confirm_job_edit"),
+				tgApi.NewInlineKeyboardButtonData("取消", "cancel_job_edit"),
+			),
+		)
+		handler.sendMessageWithMarkup(chatID,
+			fmt.Sprintf("📋 <b>任务编辑预览</b>\n\n<pre><code class=\"language-json\">%s</code></pre>\n\n⚠️ <i>请确认以上信息</i>", editJob.Format()),
+			keyboard)
+	}
+}
+
+func (handler *BotHandler) handleJobEditConfirmation(query *tgApi.CallbackQuery) {
+	session, found := handler.Sessions.Load(query.Message.Chat.ID)
+	if !found {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+			"❌ <b>会话异常</b>\n\n"+
+				"• 状态：<i>会话已过期</i>\n"+
+				"• 建议：<i>请重新编辑任务</i>")
+		return
+	}
+
+	// 删除旧任务
+	if err := handler.JobManager.DeleteJob(session.TempJob.String()); err != nil {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+			fmt.Sprintf("❌ <b>任务更新失败</b>\n\n"+
+				"• 任务ID：<code>%s</code>\n"+
+				"• 错误信息：<i>%v</i>\n"+
+				"• 失败阶段：<i>删除旧任务</i>",
+				session.TempJob.String(), err))
+		return
+	}
+
+	// 创建新任务
+	if _, err := handler.JobManager.CreateJob(*session.TempEditJob); err != nil {
+		handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+			fmt.Sprintf("❌ <b>任务更新失败</b>\n\n"+
+				"• 任务ID：<code>%s</code>\n"+
+				"• 错误信息：<i>%v</i>\n"+
+				"• 失败阶段：<i>创建新任务</i>",
+				session.TempJob.String(), err))
+		return
+	}
+
+	_ = handler.JobManager.StartJob(session.TempEditJob.String())
+	handler.sendEditMessage(query.Message.Chat.ID, query.Message.MessageID,
+		"✅ <b>任务更新成功</b>\n\n"+
+			"• 状态：<i>已自动启动</i>")
+	handler.Sessions.Delete(query.Message.Chat.ID)
 }
