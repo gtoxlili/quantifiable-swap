@@ -231,7 +231,7 @@ func (e *StrategyExecutor) saveSnapshot(typ string, price, curRSI float64) {
 }
 
 func (e *StrategyExecutor) persistSnapshot(typ string, snapshot *TradeSnapshot) error {
-	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s.txt", typ), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s_%s_%s_%d", typ, e.printInstId(), e.dataProvider.Name(), int(e.bar.Minutes())), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("open snapshot file: %w", err)
 	}
@@ -250,7 +250,7 @@ func (e *StrategyExecutor) loadSnapshot(typ string) *TradeSnapshot {
 		Price:     lo.IfThen(typ == "sell", float64(intsets.MaxInt), float64(intsets.MinInt)),
 	}
 
-	file, err := os.Open(fmt.Sprintf("snapshot_%s.txt", typ))
+	file, err := os.Open(fmt.Sprintf("snapshot_%s_%s_%s_%d", typ, e.printInstId(), e.dataProvider.Name(), int(e.bar.Minutes())))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			e.log.PrintError(fmt.Errorf("打开「%s」快照失败：%w", typ, err), false)

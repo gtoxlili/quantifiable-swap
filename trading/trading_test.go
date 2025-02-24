@@ -21,7 +21,7 @@ func TestDefaultCanSell(t *testing.T) {
 
 	bar := time.Minute
 
-	err := defaultCanSell(TradeContext{
+	err := defaultBuyStrategy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
 		snapshot: lastBuyTrade,
@@ -36,7 +36,7 @@ func TestDefaultCanSell_NotEnoughData(t *testing.T) {
 	lastTrade := &TradeSnapshot{OrderTime: time.Unix(0, 0)}
 	bar := time.Minute
 
-	err := defaultCanSell(TradeContext{
+	err := defaultSellStrategy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
 		snapshot: lastTrade,
@@ -52,7 +52,7 @@ func TestDefaultCanSell_NotMeetingSellCondition(t *testing.T) {
 	lastTrade := &TradeSnapshot{OrderTime: time.Unix(0, 0)}
 	bar := time.Minute
 
-	err := defaultCanSell(TradeContext{
+	err := defaultSellStrategy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
 		snapshot: lastTrade,
@@ -78,7 +78,7 @@ func TestDefaultCanSell_SellTooFrequent(t *testing.T) {
 	assert.True(t, time.Since(lastTrade.OrderTime) <= 4*bar)
 	assert.True(t, curRSI < 1.2*lastTrade.RSI)
 
-	err := defaultCanSell(TradeContext{
+	err := defaultSellStrategy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
 		snapshot: lastTrade,
@@ -103,7 +103,7 @@ func TestDefaultCanBuy_BuyTooFrequent(t *testing.T) {
 	assert.True(t, time.Since(lastTrade.OrderTime) <= 4*bar)
 	assert.True(t, 1.2*curRSI > lastTrade.RSI)
 
-	err := defaultCanBuy(TradeContext{
+	err := defaultBuyStrategy(TradeContext{
 		rsiQueue: rsiQueue,
 		curRSI:   curRSI,
 		snapshot: lastTrade,
