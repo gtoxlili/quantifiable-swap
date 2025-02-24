@@ -139,7 +139,7 @@ func (m *Manager) StartJob(id string) error {
 		job.cancel = cancel
 		go func() {
 			job.executor.Run(ctx)
-			_ = m.StopJob(id)
+			job.cancel = nil
 		}()
 		return nil
 	}

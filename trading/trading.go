@@ -2,15 +2,18 @@ package trading
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gtoxlili/quantifiable-swap/common"
 	"github.com/gtoxlili/quantifiable-swap/common/config"
+	"github.com/gtoxlili/quantifiable-swap/common/lo"
 	"github.com/gtoxlili/quantifiable-swap/indicator"
 	"github.com/gtoxlili/quantifiable-swap/logger"
 	"github.com/gtoxlili/quantifiable-swap/market"
 	"github.com/gtoxlili/quantifiable-swap/sequence"
 	"golang.org/x/tools/container/intsets"
+	"os"
 	"strings"
 	"time"
 )
@@ -24,9 +27,9 @@ type IStrategyExecutor interface {
 
 // TradeSnapshot 最后一次 购买/卖出 的快照
 type TradeSnapshot struct {
-	OrderTime time.Time
-	Price     float64
-	RSI       float64
+	OrderTime time.Time `json:"order_time"`
+	Price     float64   `json:"price"`
+	RSI       float64   `json:"rsi"`
 }
 
 // StrategyExecutor manages Indicator-based auto-trading logic
@@ -87,46 +90,36 @@ func NewStrategyExecutorWithCustomStrategies(
 		buyStrategy:     buyStrategy,
 		dataProvider:    dataProvider,
 		tradingProvider: tradingProvider,
-
-		// 初始化快照
-		lastSellSnapshot: &TradeSnapshot{
-			OrderTime: time.Unix(0, 0),
-			RSI:       float64(intsets.MaxInt),
-			Price:     float64(intsets.MaxInt),
-		},
-		lastBuySnapshot: &TradeSnapshot{
-			OrderTime: time.Unix(0, 0),
-			RSI:       float64(intsets.MinInt),
-			Price:     float64(intsets.MinInt),
-		},
 	}
 	urlScheme := dataProvider.UrlScheme(base, quote)
 	if tradingProvider != nil {
 		urlScheme = tradingProvider.UrlScheme(base, quote)
 	}
 	ind.log = logger.NewTraderLogger(ind.printInstId(), ind.dataProvider.Name(), int(ind.bar.Minutes()), urlScheme)
+	ind.lastBuySnapshot = ind.loadSnapshot("buy")
+	ind.lastSellSnapshot = ind.loadSnapshot("sell")
 	return ind
 }
 
-func (r *StrategyExecutor) WithSubscribers(subscribers []config.Subscriber) {
-	r.log = r.log.WithSubscribers(subscribers)
+func (e *StrategyExecutor) WithSubscribers(subscribers []config.Subscriber) {
+	e.log = e.log.WithSubscribers(subscribers)
 }
 
-func (r *StrategyExecutor) Run(ctx context.Context) {
-	r.RunWithCustomPeriod(ctx, 14)
+func (e *StrategyExecutor) Run(ctx context.Context) {
+	e.RunWithCustomPeriod(ctx, 14)
 }
 
-func (r *StrategyExecutor) RunWithCustomPeriod(ctx context.Context, period int) {
-	rsiHook, err := r.prepareStrategyHook(ctx, period)
+func (e *StrategyExecutor) RunWithCustomPeriod(ctx context.Context, period int) {
+	rsiHook, err := e.prepareStrategyHook(ctx, period)
 	if err != nil {
-		r.log.PrintError(err, false)
+		e.log.PrintError(err, false)
 		return
 	}
-	r.executeStrategyLoop(ctx, rsiHook)
+	e.executeStrategyLoop(ctx, rsiHook)
 }
 
-func (r *StrategyExecutor) prepareStrategyHook(ctx context.Context, period int) (indicator.Decorator[float64], error) {
-	priceSeq, err := sequence.NewPriceSequence(ctx, r.base, r.quote, r.bar, common.ExtraPointsForInitialDecay(period), r.dataProvider)
+func (e *StrategyExecutor) prepareStrategyHook(ctx context.Context, period int) (indicator.Decorator[float64], error) {
+	priceSeq, err := sequence.NewPriceSequence(ctx, e.base, e.quote, e.bar, common.ExtraPointsForInitialDecay(period), e.dataProvider)
 	if err != nil {
 		return nil, fmt.Errorf("创建价格序列失败：%w", err)
 	}
@@ -138,16 +131,16 @@ func (r *StrategyExecutor) prepareStrategyHook(ctx context.Context, period int) 
 		Build()
 }
 
-func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicator.Decorator[float64]) {
+func (e *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicator.Decorator[float64]) {
 	for {
 		select {
 		case <-ctx.Done():
-			r.log.PrintStrategyStop()
+			e.log.PrintStrategyStop()
 			return
 		default:
 			candle, err := hook.Update(ctx)
 			if err != nil {
-				r.log.PrintError(fmt.Errorf("更新价格序列失败：%w", err), false)
+				e.log.PrintError(fmt.Errorf("更新价格序列失败：%w", err), false)
 				return
 			}
 
@@ -163,7 +156,7 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 
 			abnormal := ""
 			// 交叉提醒
-			if candle.Time.Truncate(r.bar).Equal(candle.Time) {
+			if candle.Time.Truncate(e.bar).Equal(candle.Time) {
 				if text := crossOver(ma5, ma20, lstMA5[4], lstMA20[4]); text != "" {
 					abnormal = text
 				}
@@ -172,10 +165,10 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 			if curRSI < 30 || curRSI > 70 {
 				abnormal = "RSI"
 			}
-			r.log.PrintStrategyMetrics(candle.Time, candle.Value, curRSI, ma5, ma20, abnormal)
+			e.log.PrintStrategyMetrics(candle.Time, candle.Value, curRSI, ma5, ma20, abnormal)
 
 			// 如果自动交易未开启，直接继续循环
-			if !r.autoTrade {
+			if !e.autoTrade {
 				continue
 			}
 
@@ -183,41 +176,37 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 				rsiQueue: rsiHook.PreviousVals(),
 				curRSI:   curRSI,
 				snapshot: nil,
-				bar:      r.bar,
+				bar:      e.bar,
 				price:    candle.Value,
 				ma5:      ma5,
 				ma20:     ma20,
 			}
 
-			if err := r.buyStrategy(condition.Snapshot(r.lastBuySnapshot)); err != nil {
+			if err := e.buyStrategy(condition.Snapshot(e.lastBuySnapshot)); err != nil {
 				if !errors.Is(err, ErrInvalidBuyCondition) && !errors.Is(err, ErrInsufficientData) {
-					r.log.PrintErrorWithTime(candle.Time, err, true)
+					e.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.tradingProvider.ExecuteMarketOrder(r.base, r.quote, "buy", r.buyAmount)
+				orderID, err := e.tradingProvider.ExecuteMarketOrder(e.base, e.quote, "buy", e.buyAmount)
 				if err != nil {
-					r.log.PrintBuyFail(err)
+					e.log.PrintBuyFail(err)
 				} else {
-					r.log.PrintBuySuccess(candle.Value, curRSI, orderID)
-					r.lastBuySnapshot.OrderTime = time.Now()
-					r.lastBuySnapshot.Price = candle.Value
-					r.lastBuySnapshot.RSI = curRSI
+					e.log.PrintBuySuccess(candle.Value, curRSI, orderID)
+					e.saveSnapshot("buy", candle.Value, curRSI)
 				}
 			}
 
-			if err := r.sellStrategy(condition.Snapshot(r.lastSellSnapshot)); err != nil {
+			if err := e.sellStrategy(condition.Snapshot(e.lastSellSnapshot)); err != nil {
 				if !errors.Is(err, ErrInsufficientData) && !errors.Is(err, ErrInvalidSellCondition) {
-					r.log.PrintErrorWithTime(candle.Time, err, true)
+					e.log.PrintErrorWithTime(candle.Time, err, true)
 				}
 			} else {
-				orderID, err := r.tradingProvider.ExecuteMarketOrder(r.base, r.quote, "sell", r.sellAmount)
+				orderID, err := e.tradingProvider.ExecuteMarketOrder(e.base, e.quote, "sell", e.sellAmount)
 				if err != nil {
-					r.log.PrintSellFail(err)
+					e.log.PrintSellFail(err)
 				} else {
-					r.log.PrintSellSuccess(candle.Value, curRSI, orderID)
-					r.lastSellSnapshot.OrderTime = time.Now()
-					r.lastSellSnapshot.Price = candle.Value
-					r.lastSellSnapshot.RSI = curRSI
+					e.log.PrintSellSuccess(candle.Value, curRSI, orderID)
+					e.saveSnapshot("sell", candle.Value, curRSI)
 				}
 			}
 		}
@@ -225,6 +214,54 @@ func (r *StrategyExecutor) executeStrategyLoop(ctx context.Context, hook indicat
 }
 
 // 美化打印交易对
-func (r *StrategyExecutor) printInstId() string {
-	return fmt.Sprintf("%s-%s", strings.ToUpper(r.base), strings.ToUpper(r.quote))
+func (e *StrategyExecutor) printInstId() string {
+	return fmt.Sprintf("%s-%s", strings.ToUpper(e.base), strings.ToUpper(e.quote))
+}
+
+// 保存快照
+func (e *StrategyExecutor) saveSnapshot(typ string, price, curRSI float64) {
+	snapshot := lo.IfThen(typ == "sell", e.lastSellSnapshot, e.lastBuySnapshot)
+	snapshot.OrderTime = time.Now()
+	snapshot.Price = price
+	snapshot.RSI = curRSI
+
+	if err := e.persistSnapshot(typ, snapshot); err != nil {
+		e.log.PrintError(fmt.Errorf("持久化「%s」快照失败：%w", typ, err), false)
+	}
+}
+
+func (e *StrategyExecutor) persistSnapshot(typ string, snapshot *TradeSnapshot) error {
+	file, err := os.OpenFile(fmt.Sprintf("snapshot_%s.txt", typ), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	if err != nil {
+		return fmt.Errorf("open snapshot file: %w", err)
+	}
+	defer file.Close()
+
+	if err := json.NewEncoder(file).Encode(snapshot); err != nil {
+		return fmt.Errorf("encode snapshot: %w", err)
+	}
+	return nil
+}
+
+func (e *StrategyExecutor) loadSnapshot(typ string) *TradeSnapshot {
+	defaultSnapshot := &TradeSnapshot{
+		OrderTime: time.Unix(0, 0),
+		RSI:       lo.IfThen(typ == "sell", float64(intsets.MaxInt), float64(intsets.MinInt)),
+		Price:     lo.IfThen(typ == "sell", float64(intsets.MaxInt), float64(intsets.MinInt)),
+	}
+
+	file, err := os.Open(fmt.Sprintf("snapshot_%s.txt", typ))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			e.log.PrintError(fmt.Errorf("打开「%s」快照失败：%w", typ, err), false)
+		}
+		return defaultSnapshot
+	}
+	defer file.Close()
+
+	var snapshot TradeSnapshot
+	if err := json.NewDecoder(file).Decode(&snapshot); err != nil {
+		e.log.PrintError(fmt.Errorf("解析「%s」快照失败：%w", typ, err), false)
+	}
+	return &snapshot
 }
